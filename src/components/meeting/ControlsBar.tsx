@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -196,7 +197,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
               whileTap={{ scale: 0.95 }}
             >
               <Button
-                variant={control.variant}
+                variant={control.variant as "destructive" | "secondary"}
                 className={`
                   relative rounded-full w-12 h-12 transition-all duration-200
                   ${control.variant === 'destructive' 
@@ -233,7 +234,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
               whileTap={{ scale: 0.95 }}
             >
               <Button
-                variant={control.variant}
+                variant={control.variant as "destructive" | "secondary" | "default"}
                 className={`
                   rounded-full w-12 h-12 transition-all duration-200
                   ${control.isActive 
