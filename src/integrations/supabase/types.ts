@@ -9,13 +9,134 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      meeting_participants: {
+        Row: {
+          id: string
+          is_co_host: boolean | null
+          is_host: boolean | null
+          joined_at: string | null
+          left_at: string | null
+          meeting_id: string | null
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          is_co_host?: boolean | null
+          is_host?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          meeting_id?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          is_co_host?: boolean | null
+          is_host?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          meeting_id?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_participants_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration_minutes: number | null
+          host_id: string | null
+          id: string
+          is_active: boolean | null
+          is_recording: boolean | null
+          max_participants: number | null
+          meeting_code: string
+          participants_count: number | null
+          scheduled_time: string | null
+          settings: Json | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          host_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_recording?: boolean | null
+          max_participants?: number | null
+          meeting_code: string
+          participants_count?: number | null
+          scheduled_time?: string | null
+          settings?: Json | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          host_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_recording?: boolean | null
+          max_participants?: number | null
+          meeting_code?: string
+          participants_count?: number | null
+          scheduled_time?: string | null
+          settings?: Json | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_meeting_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
