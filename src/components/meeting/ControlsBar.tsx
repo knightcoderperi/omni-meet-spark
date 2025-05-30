@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -57,7 +56,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
       label: isMuted ? 'Unmute' : 'Mute',
       isActive: isMuted,
       onClick: onToggleMute,
-      variant: (isMuted ? 'destructive' : 'secondary') as const,
+      variant: isMuted ? 'destructive' : 'secondary',
       hotkey: 'M'
     },
     {
@@ -65,7 +64,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
       label: isVideoOff ? 'Turn on camera' : 'Turn off camera',
       isActive: isVideoOff,
       onClick: onToggleVideo,
-      variant: (isVideoOff ? 'destructive' : 'secondary') as const,
+      variant: isVideoOff ? 'destructive' : 'secondary',
       hotkey: 'V'
     },
     {
@@ -73,7 +72,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
       label: isScreenSharing ? 'Stop sharing' : 'Share screen',
       isActive: isScreenSharing,
       onClick: onToggleScreenShare,
-      variant: (isScreenSharing ? 'destructive' : 'secondary') as const,
+      variant: isScreenSharing ? 'destructive' : 'secondary',
       hotkey: 'S'
     }
   ];
@@ -84,14 +83,14 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
       label: isRecording ? 'Stop recording' : 'Start recording',
       isActive: isRecording,
       onClick: onToggleRecording,
-      variant: (isRecording ? 'destructive' : 'secondary') as const
+      variant: isRecording ? 'destructive' : 'secondary'
     },
     {
       icon: Hand,
       label: handRaised ? 'Lower hand' : 'Raise hand',
       isActive: handRaised,
       onClick: onToggleHandRaise,
-      variant: (handRaised ? 'default' : 'secondary') as const
+      variant: handRaised ? 'default' : 'secondary'
     }
   ];
 
