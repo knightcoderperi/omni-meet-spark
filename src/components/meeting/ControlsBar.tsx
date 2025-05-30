@@ -57,7 +57,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
       label: isMuted ? 'Unmute' : 'Mute',
       isActive: isMuted,
       onClick: onToggleMute,
-      variant: isMuted ? 'destructive' : 'secondary' as const,
+      variant: (isMuted ? 'destructive' : 'secondary') as const,
       hotkey: 'M'
     },
     {
@@ -65,7 +65,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
       label: isVideoOff ? 'Turn on camera' : 'Turn off camera',
       isActive: isVideoOff,
       onClick: onToggleVideo,
-      variant: isVideoOff ? 'destructive' : 'secondary' as const,
+      variant: (isVideoOff ? 'destructive' : 'secondary') as const,
       hotkey: 'V'
     },
     {
@@ -73,7 +73,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
       label: isScreenSharing ? 'Stop sharing' : 'Share screen',
       isActive: isScreenSharing,
       onClick: onToggleScreenShare,
-      variant: isScreenSharing ? 'destructive' : 'secondary' as const,
+      variant: (isScreenSharing ? 'destructive' : 'secondary') as const,
       hotkey: 'S'
     }
   ];
@@ -84,14 +84,14 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
       label: isRecording ? 'Stop recording' : 'Start recording',
       isActive: isRecording,
       onClick: onToggleRecording,
-      variant: isRecording ? 'destructive' : 'secondary' as const
+      variant: (isRecording ? 'destructive' : 'secondary') as const
     },
     {
       icon: Hand,
       label: handRaised ? 'Lower hand' : 'Raise hand',
       isActive: handRaised,
       onClick: onToggleHandRaise,
-      variant: handRaised ? 'default' : 'secondary' as const
+      variant: (handRaised ? 'default' : 'secondary') as const
     }
   ];
 
@@ -193,6 +193,8 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
             >
               <Button
                 variant={control.variant}
@@ -202,12 +204,9 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
                     ? 'bg-red-500 hover:bg-red-600 text-white' 
                     : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-gray-300'
                   }
-                  hover:scale-110 active:scale-95
                   shadow-lg hover:shadow-xl
                 `}
                 onClick={control.onClick}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
               >
                 <control.icon className="w-5 h-5" />
                 
@@ -231,6 +230,8 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: (primaryControls.length + index) * 0.1 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
             >
               <Button
                 variant={control.variant}
@@ -242,12 +243,9 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
                       : 'bg-blue-500 hover:bg-blue-600 text-white'
                     : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-gray-300'
                   }
-                  hover:scale-110 active:scale-95
                   shadow-lg hover:shadow-xl
                 `}
                 onClick={control.onClick}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
               >
                 <control.icon className="w-5 h-5" />
               </Button>
@@ -259,13 +257,13 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: (primaryControls.length + secondaryControls.length) * 0.1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
           >
             <Button
               variant="secondary"
-              className="rounded-full w-12 h-12 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-gray-300 hover:scale-110 active:scale-95 shadow-lg hover:shadow-xl transition-all duration-200"
+              className="rounded-full w-12 h-12 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-gray-300 shadow-lg hover:shadow-xl transition-all duration-200"
               onClick={() => setShowReactions(!showReactions)}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
             >
               <Smile className="w-5 h-5" />
             </Button>
@@ -276,13 +274,13 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: (primaryControls.length + secondaryControls.length + 1) * 0.1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
           >
             <Button
               variant="secondary"
-              className="rounded-full w-12 h-12 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-gray-300 hover:scale-110 active:scale-95 shadow-lg hover:shadow-xl transition-all duration-200"
+              className="rounded-full w-12 h-12 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-gray-300 shadow-lg hover:shadow-xl transition-all duration-200"
               onClick={() => setShowMore(!showMore)}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
             >
               <MoreVertical className="w-5 h-5" />
             </Button>
@@ -297,13 +295,13 @@ const ControlsBar: React.FC<ControlsBarProps> = ({
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: (primaryControls.length + secondaryControls.length + 2) * 0.1 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
         >
           <Button
             variant="destructive"
-            className="rounded-full w-12 h-12 bg-red-500 hover:bg-red-600 text-white hover:scale-110 active:scale-95 shadow-lg hover:shadow-xl transition-all duration-200"
+            className="rounded-full w-12 h-12 bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
             onClick={onLeaveMeeting}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
           >
             <Phone className="w-5 h-5 transform rotate-[135deg]" />
           </Button>
