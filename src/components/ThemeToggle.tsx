@@ -1,51 +1,34 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
+import { Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/hooks/useTheme';
 
 const ThemeToggle = () => {
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (savedTheme) {
-      setIsDark(savedTheme === 'dark');
-    } else {
-      setIsDark(prefersDark);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDark]);
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => setIsDark(!isDark)}
-      className="relative w-12 h-6 rounded-full p-0 bg-gray-600/20 backdrop-blur-sm"
+      onClick={toggleTheme}
+      className="relative w-14 h-7 rounded-full p-0 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
     >
       <motion.div
-        className="absolute w-5 h-5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full shadow-lg"
+        className="absolute w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 dark:from-blue-400 dark:to-purple-600 rounded-full shadow-lg flex items-center justify-center"
         animate={{
-          x: isDark ? 2 : 26,
-          backgroundColor: isDark ? '#3b82f6' : '#f59e0b'
+          x: isDark ? 2 : 30,
         }}
         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-      />
-      <div className="absolute inset-0 flex items-center justify-between px-1">
-        <span className="text-xs">🌙</span>
-        <span className="text-xs">☀️</span>
-      </div>
+      >
+        {isDark ? (
+          <Moon className="w-3 h-3 text-white" />
+        ) : (
+          <Sun className="w-3 h-3 text-white" />
+        )}
+      </motion.div>
     </Button>
   );
 };
