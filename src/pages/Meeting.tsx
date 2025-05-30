@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Mic, MicOff, Video, VideoOff, Phone, Users, MessageSquare, 
-  Settings, Share, Record, MoreVertical, Monitor 
+  Settings, Share, Circle, MoreVertical, Monitor 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -255,7 +254,7 @@ const Meeting = () => {
               variant={isRecording ? "destructive" : "secondary"}
               className={`rounded-full w-12 h-12 ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-600 hover:bg-gray-700'}`}
             >
-              <Record className="w-5 h-5" />
+              <Circle className="w-5 h-5" />
             </Button>
 
             <Button
