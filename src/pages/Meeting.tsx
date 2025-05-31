@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mic, MicOff, Video, VideoOff, Phone, Users, MessageSquare, 
   Settings, Share, Circle, MoreVertical, Monitor, Hand, Clock,
-  Copy, Lock, Shield, Volume2, VolumeX, Camera, Maximize
+  Copy, Lock, Shield, Volume2, VolumeX, Camera, Maximize,
+  PenTool, Presentation
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -18,6 +19,8 @@ import ChatPanel from '@/components/meeting/ChatPanel';
 import ParticipantsPanel from '@/components/meeting/ParticipantsPanel';
 import AIAssistantPanel from '@/components/meeting/AIAssistantPanel';
 import PreJoinScreen from '@/components/meeting/PreJoinScreen';
+import MeetingLobby from '@/components/meeting/MeetingLobby';
+import Whiteboard from '@/components/whiteboard/Whiteboard';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -54,6 +57,7 @@ const Meeting = () => {
   const [showChat, setShowChat] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showAI, setShowAI] = useState(false);
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
   const [meetingDuration, setMeetingDuration] = useState(0);
   const [reactions, setReactions] = useState<Array<{id: string, emoji: string, x: number, y: number}>>([]);
@@ -275,6 +279,13 @@ const Meeting = () => {
         />
       </div>
 
+      {/* Meeting Lobby */}
+      <MeetingLobby
+        meetingId={meeting?.id || ''}
+        isHost={meeting?.host_id === user?.id}
+        onParticipantUpdate={() => {}}
+      />
+
       {/* Emoji Reactions Overlay */}
       <AnimatePresence>
         {reactions.map(reaction => (
@@ -295,6 +306,18 @@ const Meeting = () => {
             {reaction.emoji}
           </motion.div>
         ))}
+      </AnimatePresence>
+
+      {/* Whiteboard Overlay */}
+      <AnimatePresence>
+        {showWhiteboard && (
+          <Whiteboard
+            isVisible={showWhiteboard}
+            onClose={() => setShowWhiteboard(false)}
+            meetingId={meeting?.id || ''}
+            userId={user?.id}
+          />
+        )}
       </AnimatePresence>
 
       {/* Main Meeting Interface */}
@@ -364,6 +387,14 @@ const Meeting = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              <Button 
+                variant="ghost" 
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
+                onClick={() => setShowWhiteboard(true)}
+              >
+                <PenTool className="w-4 h-4 mr-2" />
+                Whiteboard
+              </Button>
               <Button 
                 variant="ghost" 
                 className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
@@ -480,6 +511,7 @@ const Meeting = () => {
           onLeaveMeeting={leaveMeeting}
           onAddReaction={addReaction}
           onToggleAI={() => setShowAI(!showAI)}
+          onToggleWhiteboard={() => setShowWhiteboard(!showWhiteboard)}
         />
       </div>
     </div>

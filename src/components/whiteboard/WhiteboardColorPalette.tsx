@@ -147,23 +147,6 @@ const WhiteboardColorPalette: React.FC<WhiteboardColorPaletteProps> = ({
           </motion.div>
         ))}
       </div>
-      
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(55, 65, 81, 0.3);
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #06b6d4, #3b82f6);
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(to bottom, #0891b2, #2563eb);
-        }
-      `}</style>
     </div>
   );
 };
