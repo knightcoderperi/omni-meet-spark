@@ -233,7 +233,7 @@ const Meeting = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-700 dark:text-white text-lg">Joining meeting...</p>
         </motion.div>
       </div>
@@ -256,7 +256,7 @@ const Meeting = () => {
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
-          className="absolute top-0 left-0 w-96 h-96 bg-blue-400/10 dark:bg-blue-500/20 rounded-full blur-3xl"
+          className="absolute top-0 left-0 w-96 h-96 bg-cyan-400/10 dark:bg-cyan-500/20 rounded-full blur-3xl"
           animate={{ 
             x: [0, 100, 0],
             y: [0, 50, 0],
@@ -265,7 +265,7 @@ const Meeting = () => {
           transition={{ duration: 20, repeat: Infinity }}
         />
         <motion.div 
-          className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/10 dark:bg-purple-500/20 rounded-full blur-3xl"
+          className="absolute bottom-0 right-0 w-96 h-96 bg-blue-400/10 dark:bg-blue-500/20 rounded-full blur-3xl"
           animate={{ 
             x: [0, -100, 0],
             y: [0, -50, 0],
@@ -308,6 +308,12 @@ const Meeting = () => {
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
+              <img 
+                src="/lovable-uploads/4529ad4c-cec8-4635-98a5-14d2daac80e1.png" 
+                alt="OmniMeet" 
+                className="h-8 w-auto object-contain dark:filter dark:brightness-0 dark:invert"
+              />
+              
               <motion.h1 
                 className="text-slate-800 dark:text-white font-bold text-xl"
                 initial={{ opacity: 0, x: -20 }}
@@ -323,7 +329,7 @@ const Meeting = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
+                <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-cyan-500/20">
                   <span className="text-slate-600 dark:text-gray-400 text-sm font-mono">{meetingCode}</span>
                   <Button 
                     variant="ghost" 
@@ -347,7 +353,7 @@ const Meeting = () => {
                     animate={{ opacity: 1, scale: 1 }}
                   >
                     <motion.div 
-                      className="w-3 h-3 bg-red-500 rounded-full"
+                      className="w-3 h-3 bg-red-500 rounded-full shadow-lg shadow-red-500/50"
                       animate={{ opacity: [1, 0.3, 1] }}
                       transition={{ duration: 1.5, repeat: Infinity }}
                     />
@@ -360,7 +366,7 @@ const Meeting = () => {
             <div className="flex items-center space-x-3">
               <Button 
                 variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
                 onClick={() => setShowParticipants(!showParticipants)}
               >
                 <Users className="w-4 h-4 mr-2" />
@@ -368,14 +374,14 @@ const Meeting = () => {
               </Button>
               <Button 
                 variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
                 onClick={() => setShowChat(!showChat)}
               >
                 <MessageSquare className="w-4 h-4" />
               </Button>
               <Button 
                 variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
               >
                 <Settings className="w-4 h-4" />
               </Button>
@@ -426,7 +432,7 @@ const Meeting = () => {
               {Array.from({ length: Math.max(0, 6 - remoteStreams.size) }).map((_, i) => (
                 <motion.div
                   key={`placeholder-${i}`}
-                  className="relative bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-600 min-h-[200px] flex items-center justify-center"
+                  className="relative bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-2xl border-2 border-dashed border-slate-300 dark:border-cyan-500/30 min-h-[200px] flex items-center justify-center"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.1 }}

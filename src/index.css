@@ -101,23 +101,35 @@
 
 @layer utilities {
   .text-gradient {
-    @apply bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-purple {
+    @apply bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent;
   }
 
   .glass-effect {
     @apply bg-white/10 backdrop-blur-xl border border-white/20;
   }
 
+  .glass-effect-dark {
+    @apply bg-black/20 backdrop-blur-xl border border-cyan-500/20;
+  }
+
   .hover-lift {
     @apply transition-transform duration-300 hover:-translate-y-2;
   }
 
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+  }
+
   .glow-blue {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
   }
 
   .glow-purple {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
   }
 
   .animate-float {
@@ -140,12 +152,31 @@
   .gradient-border {
     position: relative;
     background: linear-gradient(90deg, #1e293b, #1e293b) padding-box,
-                linear-gradient(90deg, #3b82f6, #8b5cf6) border-box;
+                linear-gradient(90deg, #06b6d4, #3b82f6) border-box;
     border: 2px solid transparent;
+  }
+
+  .gradient-border-purple {
+    position: relative;
+    background: linear-gradient(90deg, #1e293b, #1e293b) padding-box,
+                linear-gradient(90deg, #8b5cf6, #ec4899) border-box;
+    border: 2px solid transparent;
+  }
+
+  .card-dark {
+    @apply bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-xl border border-cyan-500/20 shadow-xl shadow-cyan-500/10;
+  }
+
+  .button-primary {
+    @apply bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/25 transition-all duration-200;
+  }
+
+  .button-secondary {
+    @apply bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white shadow-lg shadow-purple-500/25 transition-all duration-200;
   }
 }
 
-/* Custom scrollbar */
+/* Enhanced scrollbar for dark mode */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -155,21 +186,66 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+  background: linear-gradient(to bottom, #06b6d4, #3b82f6);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #2563eb, #7c3aed);
+  background: linear-gradient(to bottom, #0891b2, #2563eb);
 }
 
-/* Selection styles */
+/* Enhanced selection styles */
 ::selection {
-  background: rgba(59, 130, 246, 0.3);
+  background: rgba(6, 182, 212, 0.3);
   color: white;
 }
 
-/* Focus styles */
+/* Enhanced focus styles */
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900;
+  @apply focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-900;
+}
+
+/* Dark mode specific enhancements */
+.dark {
+  color-scheme: dark;
+}
+
+.dark .glass-panel {
+  @apply bg-black/30 backdrop-blur-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10;
+}
+
+.dark .hover-glow:hover {
+  @apply shadow-2xl shadow-cyan-500/20 border-cyan-500/40;
+}
+
+/* Enhanced animations for dark mode */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Meeting room specific styles */
+.meeting-controls {
+  @apply bg-black/40 backdrop-blur-xl border border-cyan-500/20 rounded-2xl shadow-2xl shadow-cyan-500/10;
+}
+
+.video-tile {
+  @apply bg-gradient-to-br from-gray-900/80 to-black/80 backdrop-blur-xl border border-cyan-500/20 rounded-2xl shadow-xl shadow-cyan-500/10;
+}
+
+/* Whiteboard specific styles */
+.whiteboard-canvas {
+  @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-cyan-500/20 rounded-xl shadow-2xl;
+}
+
+.color-picker-dark {
+  @apply bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-xl border border-cyan-500/20 rounded-2xl shadow-2xl shadow-cyan-500/10;
 }

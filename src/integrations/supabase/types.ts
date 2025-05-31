@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       meeting_participants: {
         Row: {
+          guest_name: string | null
           id: string
           is_co_host: boolean | null
           is_host: boolean | null
@@ -18,9 +19,11 @@ export type Database = {
           left_at: string | null
           meeting_id: string | null
           role: string | null
+          status: string | null
           user_id: string | null
         }
         Insert: {
+          guest_name?: string | null
           id?: string
           is_co_host?: boolean | null
           is_host?: boolean | null
@@ -28,9 +31,11 @@ export type Database = {
           left_at?: string | null
           meeting_id?: string | null
           role?: string | null
+          status?: string | null
           user_id?: string | null
         }
         Update: {
+          guest_name?: string | null
           id?: string
           is_co_host?: boolean | null
           is_host?: boolean | null
@@ -38,6 +43,7 @@ export type Database = {
           left_at?: string | null
           meeting_id?: string | null
           role?: string | null
+          status?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -59,6 +65,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_recording: boolean | null
+          lobby_enabled: boolean | null
           max_participants: number | null
           meeting_code: string
           participants_count: number | null
@@ -66,6 +73,7 @@ export type Database = {
           settings: Json | null
           title: string
           updated_at: string | null
+          whiteboard_enabled: boolean | null
         }
         Insert: {
           created_at?: string | null
@@ -75,6 +83,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_recording?: boolean | null
+          lobby_enabled?: boolean | null
           max_participants?: number | null
           meeting_code: string
           participants_count?: number | null
@@ -82,6 +91,7 @@ export type Database = {
           settings?: Json | null
           title: string
           updated_at?: string | null
+          whiteboard_enabled?: boolean | null
         }
         Update: {
           created_at?: string | null
@@ -91,6 +101,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_recording?: boolean | null
+          lobby_enabled?: boolean | null
           max_participants?: number | null
           meeting_code?: string
           participants_count?: number | null
@@ -98,6 +109,7 @@ export type Database = {
           settings?: Json | null
           title?: string
           updated_at?: string | null
+          whiteboard_enabled?: boolean | null
         }
         Relationships: []
       }
@@ -127,6 +139,44 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      whiteboard_data: {
+        Row: {
+          action_type: string
+          created_at: string
+          drawing_data: Json
+          guest_name: string | null
+          id: string
+          meeting_id: string
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          drawing_data: Json
+          guest_name?: string | null
+          id?: string
+          meeting_id: string
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          drawing_data?: Json
+          guest_name?: string | null
+          id?: string
+          meeting_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whiteboard_data_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

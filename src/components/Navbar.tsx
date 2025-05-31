@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Video } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -54,16 +54,15 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <motion.div 
-            className="flex items-center space-x-3 cursor-pointer"
+            className="flex items-center cursor-pointer"
             whileHover={{ scale: 1.05 }}
             onClick={() => navigate('/')}
           >
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-              <Video className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Omnimeet
-            </span>
+            <img 
+              src="/lovable-uploads/4529ad4c-cec8-4635-98a5-14d2daac80e1.png" 
+              alt="OmniMeet" 
+              className="h-10 w-auto object-contain filter brightness-0 invert"
+            />
           </motion.div>
 
           {/* Desktop Navigation */}
@@ -91,7 +90,7 @@ const Navbar = () => {
             {user ? (
               <Button 
                 onClick={() => navigate('/dashboard')}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2 rounded-full"
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-6 py-2 rounded-full shadow-lg shadow-cyan-500/25"
               >
                 Dashboard
               </Button>
@@ -102,7 +101,7 @@ const Navbar = () => {
                 </Button>
                 <Button 
                   onClick={handleGetStarted}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2 rounded-full"
+                  className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-6 py-2 rounded-full shadow-lg shadow-cyan-500/25"
                 >
                   Get Started
                 </Button>
@@ -147,7 +146,7 @@ const Navbar = () => {
                 {user ? (
                   <Button 
                     onClick={() => { navigate('/dashboard'); setIsOpen(false); }}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white justify-start"
+                    className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white justify-start shadow-lg shadow-cyan-500/25"
                   >
                     Dashboard
                   </Button>
@@ -162,7 +161,7 @@ const Navbar = () => {
                     </Button>
                     <Button 
                       onClick={() => { handleGetStarted(); setIsOpen(false); }}
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+                      className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/25"
                     >
                       Get Started
                     </Button>
