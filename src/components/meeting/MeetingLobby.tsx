@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -13,10 +12,15 @@ import { useToast } from '@/hooks/use-toast';
 
 interface PendingParticipant {
   id: string;
-  guest_name: string;
-  user_id?: string;
-  joined_at: string;
-  status: 'pending' | 'approved' | 'denied';
+  guest_name: string | null;
+  user_id: string | null;
+  joined_at: string | null;
+  status: string | null;
+  is_co_host: boolean | null;
+  is_host: boolean | null;
+  left_at: string | null;
+  meeting_id: string | null;
+  role: string | null;
 }
 
 interface MeetingLobbyProps {

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mic, MicOff, Video, VideoOff, Phone, Monitor, MonitorOff, 
   Hand, HandMetal, Camera, Settings, MoreVertical, PenTool,
-  Sparkles, Smile, Heart, ThumbsUp, Clap, MessageSquare
+  Sparkles, Smile, Heart, ThumbsUp, MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
