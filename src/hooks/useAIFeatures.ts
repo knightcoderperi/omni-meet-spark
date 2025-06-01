@@ -3,19 +3,20 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// Use the actual database types instead of strict union types
 interface AIConversation {
   id: string;
   meeting_id: string;
   message: string;
   response: string | null;
-  ai_feature_type: 'smart_summary' | 'real_time_transcription' | 'intelligent_insights';
+  ai_feature_type: string;
   created_at: string;
 }
 
 interface AIInsight {
   id: string;
   meeting_id: string;
-  insight_type: 'action_items' | 'key_topics' | 'sentiment_analysis' | 'participant_engagement';
+  insight_type: string;
   content: any;
   confidence_score: number;
   created_at: string;
@@ -102,7 +103,7 @@ export const useAIFeatures = (meetingId: string) => {
     }
   }, [meetingId, toast]);
 
-  const sendAIMessage = useCallback(async (message: string, featureType: 'smart_summary' | 'real_time_transcription' | 'intelligent_insights') => {
+  const sendAIMessage = useCallback(async (message: string, featureType: string) => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase

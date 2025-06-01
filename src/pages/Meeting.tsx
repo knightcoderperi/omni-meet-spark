@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -490,7 +489,13 @@ const Meeting = () => {
               >
                 {showChat && <ChatPanel onClose={() => setShowChat(false)} />}
                 {showParticipants && <ParticipantsPanel participants={participants} onClose={() => setShowParticipants(false)} />}
-                {showAI && <AIAssistantPanel onClose={() => setShowAI(false)} />}
+                {showAI && (
+                  <AIAssistantPanel 
+                    meetingId={meeting?.id || ''}
+                    isVisible={showAI}
+                    onClose={() => setShowAI(false)} 
+                  />
+                )}
               </motion.div>
             )}
           </AnimatePresence>
