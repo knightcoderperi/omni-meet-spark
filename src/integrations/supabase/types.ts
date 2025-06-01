@@ -9,6 +9,85 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_conversations: {
+        Row: {
+          ai_feature_type: string
+          created_at: string
+          id: string
+          meeting_id: string | null
+          message: string
+          metadata: Json | null
+          response: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          ai_feature_type: string
+          created_at?: string
+          id?: string
+          meeting_id?: string | null
+          message: string
+          metadata?: Json | null
+          response?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          ai_feature_type?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string | null
+          message?: string
+          metadata?: Json | null
+          response?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_meeting_insights: {
+        Row: {
+          confidence_score: number | null
+          content: Json
+          created_at: string
+          id: string
+          insight_type: string
+          meeting_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          content: Json
+          created_at?: string
+          id?: string
+          insight_type: string
+          meeting_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          content?: Json
+          created_at?: string
+          id?: string
+          insight_type?: string
+          meeting_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_meeting_insights_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_participants: {
         Row: {
           guest_name: string | null
@@ -56,8 +135,64 @@ export type Database = {
           },
         ]
       }
+      meeting_transcriptions: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          end_time: number
+          id: string
+          is_final: boolean | null
+          language_code: string | null
+          meeting_id: string | null
+          participant_id: string | null
+          start_time: number
+          transcript_text: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          end_time: number
+          id?: string
+          is_final?: boolean | null
+          language_code?: string | null
+          meeting_id?: string | null
+          participant_id?: string | null
+          start_time: number
+          transcript_text: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          end_time?: number
+          id?: string
+          is_final?: boolean | null
+          language_code?: string | null
+          meeting_id?: string | null
+          participant_id?: string | null
+          start_time?: number
+          transcript_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_transcriptions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_transcriptions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetings: {
         Row: {
+          ai_features_enabled: boolean | null
+          ai_summary_generated: boolean | null
           created_at: string | null
           description: string | null
           duration_minutes: number | null
@@ -72,10 +207,13 @@ export type Database = {
           scheduled_time: string | null
           settings: Json | null
           title: string
+          transcription_enabled: boolean | null
           updated_at: string | null
           whiteboard_enabled: boolean | null
         }
         Insert: {
+          ai_features_enabled?: boolean | null
+          ai_summary_generated?: boolean | null
           created_at?: string | null
           description?: string | null
           duration_minutes?: number | null
@@ -90,10 +228,13 @@ export type Database = {
           scheduled_time?: string | null
           settings?: Json | null
           title: string
+          transcription_enabled?: boolean | null
           updated_at?: string | null
           whiteboard_enabled?: boolean | null
         }
         Update: {
+          ai_features_enabled?: boolean | null
+          ai_summary_generated?: boolean | null
           created_at?: string | null
           description?: string | null
           duration_minutes?: number | null
@@ -108,6 +249,7 @@ export type Database = {
           scheduled_time?: string | null
           settings?: Json | null
           title?: string
+          transcription_enabled?: boolean | null
           updated_at?: string | null
           whiteboard_enabled?: boolean | null
         }
