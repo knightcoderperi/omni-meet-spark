@@ -331,9 +331,9 @@ const Meeting = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
               <img 
-                src="/lovable-uploads/4529ad4c-cec8-4635-98a5-14d2daac80e1.png" 
+                src="/lovable-uploads/7d88fd56-d3fa-4677-928c-8d654baae527.png" 
                 alt="OmniMeet" 
-                className="h-8 w-auto object-contain dark:filter dark:brightness-0 dark:invert"
+                className="h-8 w-auto object-contain"
               />
               
               <motion.h1 
