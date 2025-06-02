@@ -5,7 +5,7 @@ import {
   Mic, MicOff, Video, VideoOff, Phone, Users, MessageSquare, 
   Settings, Share, Circle, MoreVertical, Monitor, Hand, Clock,
   Copy, Lock, Shield, Volume2, VolumeX, Camera, Maximize,
-  PenTool, Presentation
+  PenTool, Presentation, Brain, Lightbulb, Languages
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,7 +19,11 @@ import ParticipantsPanel from '@/components/meeting/ParticipantsPanel';
 import AIAssistantPanel from '@/components/meeting/AIAssistantPanel';
 import PreJoinScreen from '@/components/meeting/PreJoinScreen';
 import MeetingLobby from '@/components/meeting/MeetingLobby';
+import MeetingInsights from '@/components/meeting/MeetingInsights';
 import Whiteboard from '@/components/whiteboard/Whiteboard';
+import SmartSummary from '@/components/meeting/SmartSummary';
+import TaskGenerator from '@/components/meeting/TaskGenerator';
+import TranslationChat from '@/components/meeting/TranslationChat';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -57,6 +61,10 @@ const Meeting = () => {
   const [showParticipants, setShowParticipants] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
+  const [showSmartSummary, setShowSmartSummary] = useState(false);
+  const [showTaskGenerator, setShowTaskGenerator] = useState(false);
+  const [showTranslationChat, setShowTranslationChat] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
   const [meetingDuration, setMeetingDuration] = useState(0);
   const [reactions, setReactions] = useState<Array<{id: string, emoji: string, x: number, y: number}>>([]);
@@ -307,6 +315,43 @@ const Meeting = () => {
         ))}
       </AnimatePresence>
 
+      {/* Meeting Enhancement Features */}
+      <AnimatePresence>
+        {showSmartSummary && (
+          <SmartSummary
+            meetingId={meeting?.id || ''}
+            isVisible={showSmartSummary}
+            onClose={() => setShowSmartSummary(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showTaskGenerator && (
+          <TaskGenerator
+            meetingId={meeting?.id || ''}
+            isVisible={showTaskGenerator}
+            onClose={() => setShowTaskGenerator(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showTranslationChat && (
+          <TranslationChat
+            meetingId={meeting?.id || ''}
+            isVisible={showTranslationChat}
+            onClose={() => setShowTranslationChat(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Meeting Insights Panel */}
+      <MeetingInsights
+        meetingId={meeting?.id || ''}
+        isVisible={showInsights}
+      />
+
       {/* Whiteboard Overlay */}
       <AnimatePresence>
         {showWhiteboard && (
@@ -386,6 +431,38 @@ const Meeting = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              <Button 
+                variant="ghost" 
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
+                onClick={() => setShowSmartSummary(true)}
+              >
+                <Brain className="w-4 h-4 mr-2" />
+                Smart Summary
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
+                onClick={() => setShowTaskGenerator(true)}
+              >
+                <Lightbulb className="w-4 h-4 mr-2" />
+                AI Tasks
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
+                onClick={() => setShowTranslationChat(true)}
+              >
+                <Languages className="w-4 h-4 mr-2" />
+                Translate
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
+                onClick={() => setShowInsights(!showInsights)}
+              >
+                <Brain className="w-4 h-4 mr-2" />
+                Insights
+              </Button>
               <Button 
                 variant="ghost" 
                 className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
