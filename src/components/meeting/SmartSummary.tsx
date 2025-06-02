@@ -54,7 +54,20 @@ const SmartSummary: React.FC<SmartSummaryProps> = ({
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setSummaries(data || []);
+      
+      // Transform the data to match our Summary interface
+      const transformedSummaries: Summary[] = (data || []).map(item => ({
+        id: item.id,
+        summary_type: item.summary_type,
+        content: item.content,
+        key_points: Array.isArray(item.key_points) ? item.key_points : [],
+        decisions_made: Array.isArray(item.decisions_made) ? item.decisions_made : [],
+        next_steps: Array.isArray(item.next_steps) ? item.next_steps : [],
+        ai_confidence_score: item.ai_confidence_score || 0,
+        created_at: item.created_at || new Date().toISOString()
+      }));
+      
+      setSummaries(transformedSummaries);
     } catch (error) {
       console.error('Error fetching summaries:', error);
       toast({
@@ -102,7 +115,19 @@ const SmartSummary: React.FC<SmartSummaryProps> = ({
 
       if (error) throw error;
 
-      setSummaries(prev => [data, ...prev]);
+      // Transform the returned data to match our Summary interface
+      const transformedSummary: Summary = {
+        id: data.id,
+        summary_type: data.summary_type,
+        content: data.content,
+        key_points: Array.isArray(data.key_points) ? data.key_points : [],
+        decisions_made: Array.isArray(data.decisions_made) ? data.decisions_made : [],
+        next_steps: Array.isArray(data.next_steps) ? data.next_steps : [],
+        ai_confidence_score: data.ai_confidence_score || 0,
+        created_at: data.created_at || new Date().toISOString()
+      };
+
+      setSummaries(prev => [transformedSummary, ...prev]);
       
       toast({
         title: "Smart Summary Generated",
