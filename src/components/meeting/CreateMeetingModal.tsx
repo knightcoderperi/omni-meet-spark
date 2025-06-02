@@ -50,24 +50,27 @@ const CreateMeetingModal: React.FC<CreateMeetingModalProps> = ({
 
     setIsCreating(true);
     try {
+      // Create the insert data object with only the fields that exist in the database
+      const insertData = {
+        title: formData.title,
+        description: formData.description || null,
+        creator_id: user.id,
+        scheduled_time: formData.scheduledTime || null,
+        duration_minutes: formData.durationMinutes,
+        require_approval: formData.requireApproval,
+        lobby_enabled: formData.lobbyEnabled,
+        password_protected: formData.passwordProtected,
+        meeting_password: formData.passwordProtected ? formData.meetingPassword : null,
+        allow_anonymous: formData.allowAnonymous,
+        recording_enabled: formData.recordingEnabled,
+        max_participants: formData.maxParticipants,
+        welcome_message: formData.welcomeMessage || null,
+        status: 'scheduled' as const
+      };
+
       const { data, error } = await supabase
         .from('meetings')
-        .insert({
-          title: formData.title,
-          description: formData.description || null,
-          creator_id: user.id,
-          scheduled_time: formData.scheduledTime || null,
-          duration_minutes: formData.durationMinutes,
-          require_approval: formData.requireApproval,
-          lobby_enabled: formData.lobbyEnabled,
-          password_protected: formData.passwordProtected,
-          meeting_password: formData.passwordProtected ? formData.meetingPassword : null,
-          allow_anonymous: formData.allowAnonymous,
-          recording_enabled: formData.recordingEnabled,
-          max_participants: formData.maxParticipants,
-          welcome_message: formData.welcomeMessage || null,
-          status: 'scheduled'
-        })
+        .insert(insertData)
         .select('meeting_code, id')
         .single();
 
