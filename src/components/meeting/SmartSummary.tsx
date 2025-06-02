@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -39,6 +38,12 @@ const SmartSummary: React.FC<SmartSummaryProps> = ({
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
 
+  // Helper function to safely convert Json array to string array
+  const jsonArrayToStringArray = (jsonArray: any): string[] => {
+    if (!Array.isArray(jsonArray)) return [];
+    return jsonArray.filter((item): item is string => typeof item === 'string');
+  };
+
   useEffect(() => {
     if (isVisible) {
       fetchSummaries();
@@ -60,9 +65,9 @@ const SmartSummary: React.FC<SmartSummaryProps> = ({
         id: item.id,
         summary_type: item.summary_type,
         content: item.content,
-        key_points: Array.isArray(item.key_points) ? item.key_points : [],
-        decisions_made: Array.isArray(item.decisions_made) ? item.decisions_made : [],
-        next_steps: Array.isArray(item.next_steps) ? item.next_steps : [],
+        key_points: jsonArrayToStringArray(item.key_points),
+        decisions_made: jsonArrayToStringArray(item.decisions_made),
+        next_steps: jsonArrayToStringArray(item.next_steps),
         ai_confidence_score: item.ai_confidence_score || 0,
         created_at: item.created_at || new Date().toISOString()
       }));
@@ -120,9 +125,9 @@ const SmartSummary: React.FC<SmartSummaryProps> = ({
         id: data.id,
         summary_type: data.summary_type,
         content: data.content,
-        key_points: Array.isArray(data.key_points) ? data.key_points : [],
-        decisions_made: Array.isArray(data.decisions_made) ? data.decisions_made : [],
-        next_steps: Array.isArray(data.next_steps) ? data.next_steps : [],
+        key_points: jsonArrayToStringArray(data.key_points),
+        decisions_made: jsonArrayToStringArray(data.decisions_made),
+        next_steps: jsonArrayToStringArray(data.next_steps),
         ai_confidence_score: data.ai_confidence_score || 0,
         created_at: data.created_at || new Date().toISOString()
       };
