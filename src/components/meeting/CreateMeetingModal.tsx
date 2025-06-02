@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Calendar, Clock, Users, Settings, Copy, Check } from 'lucide-react';
@@ -50,8 +49,15 @@ const CreateMeetingModal: React.FC<CreateMeetingModalProps> = ({
 
     setIsCreating(true);
     try {
-      // Create the insert data object with only the fields that exist in the database
+      // First generate a meeting code
+      const { data: codeData, error: codeError } = await supabase
+        .rpc('generate_meeting_code');
+
+      if (codeError) throw codeError;
+
+      // Create the insert data object with the generated meeting code
       const insertData = {
+        meeting_code: codeData,
         title: formData.title,
         description: formData.description || null,
         creator_id: user.id,
