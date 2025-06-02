@@ -192,77 +192,6 @@ export type Database = {
           },
         ]
       }
-      lobby_queue: {
-        Row: {
-          approval_status: Database["public"]["Enums"]["approval_status"] | null
-          approved_at: string | null
-          approved_by: string | null
-          device_info: Json | null
-          email: string | null
-          guest_name: string | null
-          id: string
-          joined_lobby_at: string | null
-          meeting_id: string | null
-          network_quality: Json | null
-          user_id: string | null
-          wait_time_estimate: number | null
-        }
-        Insert: {
-          approval_status?:
-            | Database["public"]["Enums"]["approval_status"]
-            | null
-          approved_at?: string | null
-          approved_by?: string | null
-          device_info?: Json | null
-          email?: string | null
-          guest_name?: string | null
-          id?: string
-          joined_lobby_at?: string | null
-          meeting_id?: string | null
-          network_quality?: Json | null
-          user_id?: string | null
-          wait_time_estimate?: number | null
-        }
-        Update: {
-          approval_status?:
-            | Database["public"]["Enums"]["approval_status"]
-            | null
-          approved_at?: string | null
-          approved_by?: string | null
-          device_info?: Json | null
-          email?: string | null
-          guest_name?: string | null
-          id?: string
-          joined_lobby_at?: string | null
-          meeting_id?: string | null
-          network_quality?: Json | null
-          user_id?: string | null
-          wait_time_estimate?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lobby_queue_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lobby_queue_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "meetings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lobby_queue_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       meeting_analytics: {
         Row: {
           average_engagement_score: number | null
@@ -310,169 +239,46 @@ export type Database = {
           },
         ]
       }
-      meeting_invitations: {
-        Row: {
-          email: string
-          expires_at: string | null
-          id: string
-          invitation_token: string | null
-          invited_by: string | null
-          meeting_id: string | null
-          reminder_count: number | null
-          responded_at: string | null
-          response_status: string | null
-          sent_at: string | null
-        }
-        Insert: {
-          email: string
-          expires_at?: string | null
-          id?: string
-          invitation_token?: string | null
-          invited_by?: string | null
-          meeting_id?: string | null
-          reminder_count?: number | null
-          responded_at?: string | null
-          response_status?: string | null
-          sent_at?: string | null
-        }
-        Update: {
-          email?: string
-          expires_at?: string | null
-          id?: string
-          invitation_token?: string | null
-          invited_by?: string | null
-          meeting_id?: string | null
-          reminder_count?: number | null
-          responded_at?: string | null
-          response_status?: string | null
-          sent_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meeting_invitations_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_invitations_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "meetings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       meeting_participants: {
         Row: {
-          approved_at: string | null
-          approved_by: string | null
-          device_info: Json | null
-          email: string | null
           guest_name: string | null
           id: string
           is_co_host: boolean | null
           is_host: boolean | null
           joined_at: string | null
           left_at: string | null
-          location_info: Json | null
           meeting_id: string | null
           role: string | null
           status: string | null
           user_id: string | null
         }
         Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          device_info?: Json | null
-          email?: string | null
           guest_name?: string | null
           id?: string
           is_co_host?: boolean | null
           is_host?: boolean | null
           joined_at?: string | null
           left_at?: string | null
-          location_info?: Json | null
           meeting_id?: string | null
           role?: string | null
           status?: string | null
           user_id?: string | null
         }
         Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          device_info?: Json | null
-          email?: string | null
           guest_name?: string | null
           id?: string
           is_co_host?: boolean | null
           is_host?: boolean | null
           joined_at?: string | null
           left_at?: string | null
-          location_info?: Json | null
           meeting_id?: string | null
           role?: string | null
           status?: string | null
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_participants_approved_by"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "meeting_participants_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "meetings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      meeting_settings: {
-        Row: {
-          auto_admit_domains: string[] | null
-          created_at: string | null
-          id: string
-          integration_settings: Json | null
-          meeting_id: string | null
-          notification_settings: Json | null
-          security_settings: Json | null
-          time_based_rules: Json | null
-          updated_at: string | null
-          whitelist_users: string[] | null
-        }
-        Insert: {
-          auto_admit_domains?: string[] | null
-          created_at?: string | null
-          id?: string
-          integration_settings?: Json | null
-          meeting_id?: string | null
-          notification_settings?: Json | null
-          security_settings?: Json | null
-          time_based_rules?: Json | null
-          updated_at?: string | null
-          whitelist_users?: string[] | null
-        }
-        Update: {
-          auto_admit_domains?: string[] | null
-          created_at?: string | null
-          id?: string
-          integration_settings?: Json | null
-          meeting_id?: string | null
-          notification_settings?: Json | null
-          security_settings?: Json | null
-          time_based_rules?: Json | null
-          updated_at?: string | null
-          whitelist_users?: string[] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meeting_settings_meeting_id_fkey"
             columns: ["meeting_id"]
             isOneToOne: false
             referencedRelation: "meetings"
@@ -636,114 +442,67 @@ export type Database = {
         Row: {
           ai_features_enabled: boolean | null
           ai_summary_generated: boolean | null
-          allow_anonymous: boolean | null
-          auto_recording: boolean | null
-          background_url: string | null
-          company_logo_url: string | null
           created_at: string | null
-          creator_id: string | null
           description: string | null
-          domain_restriction: string | null
           duration_minutes: number | null
           host_id: string | null
           id: string
           is_active: boolean | null
           is_recording: boolean | null
-          link_expiration: string | null
           lobby_enabled: boolean | null
           max_participants: number | null
           meeting_code: string
-          meeting_password: string | null
           participants_count: number | null
-          password_protected: boolean | null
-          recording_enabled: boolean | null
-          require_approval: boolean | null
           scheduled_time: string | null
           settings: Json | null
-          status: Database["public"]["Enums"]["meeting_status"] | null
           title: string
           transcription_enabled: boolean | null
           updated_at: string | null
-          welcome_message: string | null
           whiteboard_enabled: boolean | null
         }
         Insert: {
           ai_features_enabled?: boolean | null
           ai_summary_generated?: boolean | null
-          allow_anonymous?: boolean | null
-          auto_recording?: boolean | null
-          background_url?: string | null
-          company_logo_url?: string | null
           created_at?: string | null
-          creator_id?: string | null
           description?: string | null
-          domain_restriction?: string | null
           duration_minutes?: number | null
           host_id?: string | null
           id?: string
           is_active?: boolean | null
           is_recording?: boolean | null
-          link_expiration?: string | null
           lobby_enabled?: boolean | null
           max_participants?: number | null
           meeting_code: string
-          meeting_password?: string | null
           participants_count?: number | null
-          password_protected?: boolean | null
-          recording_enabled?: boolean | null
-          require_approval?: boolean | null
           scheduled_time?: string | null
           settings?: Json | null
-          status?: Database["public"]["Enums"]["meeting_status"] | null
           title: string
           transcription_enabled?: boolean | null
           updated_at?: string | null
-          welcome_message?: string | null
           whiteboard_enabled?: boolean | null
         }
         Update: {
           ai_features_enabled?: boolean | null
           ai_summary_generated?: boolean | null
-          allow_anonymous?: boolean | null
-          auto_recording?: boolean | null
-          background_url?: string | null
-          company_logo_url?: string | null
           created_at?: string | null
-          creator_id?: string | null
           description?: string | null
-          domain_restriction?: string | null
           duration_minutes?: number | null
           host_id?: string | null
           id?: string
           is_active?: boolean | null
           is_recording?: boolean | null
-          link_expiration?: string | null
           lobby_enabled?: boolean | null
           max_participants?: number | null
           meeting_code?: string
-          meeting_password?: string | null
           participants_count?: number | null
-          password_protected?: boolean | null
-          recording_enabled?: boolean | null
-          require_approval?: boolean | null
           scheduled_time?: string | null
           settings?: Json | null
-          status?: Database["public"]["Enums"]["meeting_status"] | null
           title?: string
           transcription_enabled?: boolean | null
           updated_at?: string | null
-          welcome_message?: string | null
           whiteboard_enabled?: boolean | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_meetings_creator"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       participant_engagement: {
         Row: {
@@ -803,40 +562,25 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
-          email_verified: boolean | null
           full_name: string | null
           id: string
-          last_login: string | null
           phone: string | null
-          phone_verified: boolean | null
-          role: Database["public"]["Enums"]["user_role"] | null
-          timezone: string | null
           updated_at: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
-          email_verified?: boolean | null
           full_name?: string | null
           id: string
-          last_login?: string | null
           phone?: string | null
-          phone_verified?: boolean | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          timezone?: string | null
           updated_at?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
-          email_verified?: boolean | null
           full_name?: string | null
           id?: string
-          last_login?: string | null
           phone?: string | null
-          phone_verified?: boolean | null
-          role?: Database["public"]["Enums"]["user_role"] | null
-          timezone?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -941,17 +685,7 @@ export type Database = {
       }
     }
     Enums: {
-      approval_status: "pending" | "approved" | "denied"
-      meeting_status: "scheduled" | "active" | "completed" | "cancelled"
-      participant_role: "host" | "co_host" | "participant"
-      participant_status:
-        | "invited"
-        | "pending"
-        | "approved"
-        | "denied"
-        | "joined"
-        | "left"
-      user_role: "admin" | "moderator" | "participant"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1066,19 +800,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      approval_status: ["pending", "approved", "denied"],
-      meeting_status: ["scheduled", "active", "completed", "cancelled"],
-      participant_role: ["host", "co_host", "participant"],
-      participant_status: [
-        "invited",
-        "pending",
-        "approved",
-        "denied",
-        "joined",
-        "left",
-      ],
-      user_role: ["admin", "moderator", "participant"],
-    },
+    Enums: {},
   },
 } as const
