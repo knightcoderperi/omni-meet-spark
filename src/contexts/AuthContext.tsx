@@ -105,12 +105,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
       
-      const status = data as SecurityStatus;
-      setSecurityStatus(status);
-      return status;
+      // Properly cast the JSON response to SecurityStatus
+      const status = data as unknown as SecurityStatus;
+      
+      // Validate that we have the expected structure
+      if (typeof status === 'object' && status !== null && 
+          'locked' in status && 'attempts' in status) {
+        setSecurityStatus(status);
+        return status;
+      } else {
+        // Fallback if the response doesn't match expected structure
+        const fallbackStatus: SecurityStatus = { locked: false, attempts: 0 };
+        setSecurityStatus(fallbackStatus);
+        return fallbackStatus;
+      }
     } catch (error) {
       console.error('Error checking security status:', error);
-      return { locked: false, attempts: 0 };
+      const fallbackStatus: SecurityStatus = { locked: false, attempts: 0 };
+      setSecurityStatus(fallbackStatus);
+      return fallbackStatus;
     }
   };
 
