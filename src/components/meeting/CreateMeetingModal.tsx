@@ -45,15 +45,31 @@ const CreateMeetingModal: React.FC<CreateMeetingModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    console.log('Creating meeting, user:', user);
+    
+    if (!user) {
+      console.error('No user found');
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a meeting.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsCreating(true);
     try {
+      console.log('Generating meeting code...');
       // First generate a meeting code
       const { data: codeData, error: codeError } = await supabase
         .rpc('generate_meeting_code');
 
-      if (codeError) throw codeError;
+      if (codeError) {
+        console.error('Error generating meeting code:', codeError);
+        throw codeError;
+      }
+
+      console.log('Generated meeting code:', codeData);
 
       // Create the insert data object with the generated meeting code
       const insertData = {
@@ -74,14 +90,20 @@ const CreateMeetingModal: React.FC<CreateMeetingModalProps> = ({
         status: 'scheduled' as const
       };
 
+      console.log('Inserting meeting data:', insertData);
+
       const { data, error } = await supabase
         .from('meetings')
         .insert(insertData)
         .select('meeting_code, id')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting meeting:', error);
+        throw error;
+      }
 
+      console.log('Meeting created successfully:', data);
       setCreatedMeeting({ code: data.meeting_code, id: data.id });
       
       toast({
@@ -92,7 +114,7 @@ const CreateMeetingModal: React.FC<CreateMeetingModalProps> = ({
       console.error('Error creating meeting:', error);
       toast({
         title: "Error",
-        description: "Failed to create meeting. Please try again.",
+        description: `Failed to create meeting: ${error.message}`,
         variant: "destructive"
       });
     } finally {
@@ -288,7 +310,7 @@ const CreateMeetingModal: React.FC<CreateMeetingModalProps> = ({
                 <Button type="button" variant="outline" onClick={onClose}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isCreating}>
+                <Button type="submit" disabled={isCreating || !user}>
                   {isCreating ? 'Creating...' : 'Create Meeting'}
                 </Button>
               </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -40,12 +39,14 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('Dashboard mounted, user:', user);
     if (user) {
       fetchMeetings();
     }
   }, [user]);
 
   const fetchMeetings = async () => {
+    console.log('Fetching meetings for user:', user?.id);
     try {
       const { data, error } = await supabase
         .from('meetings')
@@ -53,7 +54,12 @@ const Dashboard: React.FC = () => {
         .eq('creator_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching meetings:', error);
+        throw error;
+      }
+      
+      console.log('Fetched meetings:', data);
       setMeetings(data || []);
     } catch (error) {
       console.error('Error fetching meetings:', error);
@@ -122,7 +128,24 @@ const Dashboard: React.FC = () => {
   };
 
   const handleMeetingCreated = (meetingCode: string) => {
+    console.log('Meeting created with code:', meetingCode);
+    // Refresh the meetings list
+    fetchMeetings();
     navigate(`/meeting/${meetingCode}`);
+  };
+
+  const handleCreateMeeting = () => {
+    console.log('Opening create meeting modal');
+    if (!user) {
+      console.error('No user found when trying to create meeting');
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a meeting.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowCreateModal(true);
   };
 
   const getStatusBadge = (status: Meeting['status']) => {
@@ -201,7 +224,7 @@ const Dashboard: React.FC = () => {
             </div>
             
             <Button
-              onClick={() => setShowCreateModal(true)}
+              onClick={handleCreateMeeting}
               className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -285,7 +308,7 @@ const Dashboard: React.FC = () => {
                 <p className="text-slate-600 dark:text-slate-400 mb-6">
                   Create your first meeting to get started
                 </p>
-                <Button onClick={() => setShowCreateModal(true)}>
+                <Button onClick={handleCreateMeeting}>
                   <Plus className="w-4 h-4 mr-2" />
                   Create Meeting
                 </Button>
