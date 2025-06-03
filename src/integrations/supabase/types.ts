@@ -745,6 +745,33 @@ export type Database = {
           },
         ]
       }
+      otp_tokens: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          otp_hash: string
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          otp_hash: string
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          otp_hash?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       participant_engagement: {
         Row: {
           active_participation_score: number | null
@@ -892,6 +919,36 @@ export type Database = {
           },
         ]
       }
+      user_security: {
+        Row: {
+          created_at: string | null
+          failed_attempts: number | null
+          id: string
+          last_attempt: string | null
+          lockout_until: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          failed_attempts?: number | null
+          id?: string
+          last_attempt?: string | null
+          lockout_until?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          failed_attempts?: number | null
+          id?: string
+          last_attempt?: string | null
+          lockout_until?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       whiteboard_data: {
         Row: {
           action_type: string
@@ -938,6 +995,14 @@ export type Database = {
       generate_meeting_code: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      handle_failed_login: {
+        Args: { user_email: string }
+        Returns: Json
+      }
+      reset_failed_attempts: {
+        Args: { user_email: string }
+        Returns: undefined
       }
     }
     Enums: {

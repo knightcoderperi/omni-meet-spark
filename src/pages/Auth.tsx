@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, User, Video } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Video, Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -18,16 +19,23 @@ const Auth: React.FC = () => {
     fullName: ''
   });
   const [loading, setLoading] = useState(false);
+  const [showSecurityWarning, setShowSecurityWarning] = useState(false);
   
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, securityStatus, checkSecurityStatus } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setShowSecurityWarning(false);
 
     try {
       if (isSignUp) {
+        // Basic password strength validation
+        if (formData.password.length < 8) {
+          throw new Error('Password must be at least 8 characters long');
+        }
+        
         await signUp(formData.email, formData.password, formData.fullName);
         toast({
           title: "Account created!",
@@ -41,11 +49,33 @@ const Auth: React.FC = () => {
         });
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "An error occurred. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Authentication error:', error);
+      
+      // Handle account lockout specifically
+      if (error.message.includes('Account temporarily locked')) {
+        setShowSecurityWarning(true);
+        toast({
+          title: "Account Locked",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        // Check if this was a failed login attempt
+        if (!isSignUp && formData.email) {
+          setTimeout(async () => {
+            const status = await checkSecurityStatus(formData.email);
+            if (status.attempts > 0) {
+              setShowSecurityWarning(true);
+            }
+          }, 500);
+        }
+        
+        toast({
+          title: "Error",
+          description: error.message || "An error occurred. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -54,6 +84,14 @@ const Auth: React.FC = () => {
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
     setFormData({ email: '', password: '', fullName: '' });
+    setShowSecurityWarning(false);
+  };
+
+  const getRemainingLockoutTime = () => {
+    if (!securityStatus?.lockout_until) return 0;
+    const lockoutTime = new Date(securityStatus.lockout_until);
+    const now = new Date();
+    return Math.max(0, Math.ceil((lockoutTime.getTime() - now.getTime()) / 1000 / 60));
   };
 
   return (
@@ -76,6 +114,26 @@ const Auth: React.FC = () => {
             Professional video meetings made simple
           </p>
         </motion.div>
+
+        {/* Security Warning */}
+        {showSecurityWarning && securityStatus && (
+          <motion.div
+            className="mb-6"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Alert variant={securityStatus.locked ? "destructive" : "default"}>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {securityStatus.locked ? (
+                  `Account locked for ${getRemainingLockoutTime()} minutes due to failed login attempts.`
+                ) : (
+                  `${securityStatus.attempts} failed login attempt(s). Account will be locked after 5 attempts.`
+                )}
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
 
         {/* Auth Card */}
         <motion.div
@@ -138,7 +196,7 @@ const Auth: React.FC = () => {
 
                 <div>
                   <Label htmlFor="password" className="text-slate-700 dark:text-slate-300">
-                    Password
+                    Password {isSignUp && <span className="text-xs text-slate-500">(min. 8 characters)</span>}
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -150,6 +208,7 @@ const Auth: React.FC = () => {
                       onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                       className="pl-10 pr-10 bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-600"
                       required
+                      minLength={isSignUp ? 8 : undefined}
                     />
                     <button
                       type="button"
@@ -164,7 +223,7 @@ const Auth: React.FC = () => {
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
-                  disabled={loading}
+                  disabled={loading || (securityStatus?.locked ?? false)}
                 >
                   {loading ? (
                     <div className="flex items-center">
@@ -209,7 +268,7 @@ const Auth: React.FC = () => {
             </div>
             <div className="flex flex-col items-center">
               <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-2">
-                <Lock className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <Shield className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <span>Secure</span>
             </div>
