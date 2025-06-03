@@ -1,286 +1,215 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, User, Video, Shield, AlertTriangle } from 'lucide-react';
+import { Video, Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
-const Auth: React.FC = () => {
-  const [isSignUp, setIsSignUp] = useState(false);
+const Auth = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    fullName: ''
-  });
   const [loading, setLoading] = useState(false);
-  const [showSecurityWarning, setShowSecurityWarning] = useState(false);
   
-  const { signIn, signUp, securityStatus, checkSecurityStatus } = useAuth();
+  const { signIn, signUp, user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setShowSecurityWarning(false);
 
     try {
-      if (isSignUp) {
-        // Basic password strength validation
-        if (formData.password.length < 8) {
-          throw new Error('Password must be at least 8 characters long');
+      if (isLogin) {
+        const { error } = await signIn(email, password);
+        if (error) {
+          toast({
+            title: "Sign in failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Welcome back!",
+            description: "Successfully signed in to Omnimeet"
+          });
         }
-        
-        await signUp(formData.email, formData.password, formData.fullName);
-        toast({
-          title: "Account created!",
-          description: "Please check your email to verify your account.",
-        });
       } else {
-        await signIn(formData.email, formData.password);
-        toast({
-          title: "Welcome back!",
-          description: "You have been signed in successfully.",
-        });
-      }
-    } catch (error: any) {
-      console.error('Authentication error:', error);
-      
-      // Handle account lockout specifically
-      if (error.message.includes('Account temporarily locked')) {
-        setShowSecurityWarning(true);
-        toast({
-          title: "Account Locked",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        // Check if this was a failed login attempt
-        if (!isSignUp && formData.email) {
-          setTimeout(async () => {
-            const status = await checkSecurityStatus(formData.email);
-            if (status.attempts > 0) {
-              setShowSecurityWarning(true);
-            }
-          }, 500);
+        const { error } = await signUp(email, password, fullName);
+        if (error) {
+          toast({
+            title: "Sign up failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Account created!",
+            description: "Please check your email to confirm your account"
+          });
         }
-        
-        toast({
-          title: "Error",
-          description: error.message || "An error occurred. Please try again.",
-          variant: "destructive",
-        });
       }
+    } catch (error) {
+      toast({
+        title: "An error occurred",
+        description: "Please try again later",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleMode = () => {
-    setIsSignUp(!isSignUp);
-    setFormData({ email: '', password: '', fullName: '' });
-    setShowSecurityWarning(false);
-  };
-
-  const getRemainingLockoutTime = () => {
-    if (!securityStatus?.lockout_until) return 0;
-    const lockoutTime = new Date(securityStatus.lockout_until);
-    const now = new Date();
-    return Math.max(0, Math.ceil((lockoutTime.getTime() - now.getTime()) / 1000 / 60));
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <motion.div
-          className="text-center mb-8"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl mb-4">
-            <Video className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-            MeetingPro
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            Professional video meetings made simple
-          </p>
-        </motion.div>
-
-        {/* Security Warning */}
-        {showSecurityWarning && securityStatus && (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      {/* Background Animation */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 20 }).map((_, i) => (
           <motion.div
-            className="mb-6"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
+            key={i}
+            className="absolute w-2 h-2 bg-blue-400/30 rounded-full"
+            initial={{
+              x: Math.random() * window.innerWidth,
+              y: Math.random() * window.innerHeight,
+            }}
+            animate={{
+              y: -100,
+              opacity: [0, 1, 0],
+            }}
+            transition={{
+              duration: Math.random() * 3 + 2,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md"
+      >
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <motion.div 
+            className="inline-flex items-center space-x-3 mb-4"
+            whileHover={{ scale: 1.05 }}
           >
-            <Alert variant={securityStatus.locked ? "destructive" : "default"}>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                {securityStatus.locked ? (
-                  `Account locked for ${getRemainingLockoutTime()} minutes due to failed login attempts.`
-                ) : (
-                  `${securityStatus.attempts} failed login attempt(s). Account will be locked after 5 attempts.`
-                )}
-              </AlertDescription>
-            </Alert>
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <Video className="w-7 h-7 text-white" />
+            </div>
+            <span className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Omnimeet
+            </span>
           </motion.div>
-        )}
+          <p className="text-gray-300">
+            {isLogin ? 'Welcome back to the future of meetings' : 'Join the future of video conferencing'}
+          </p>
+        </div>
 
-        {/* Auth Card */}
+        {/* Auth Form */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
+          className="bg-black/20 backdrop-blur-xl rounded-2xl p-8 border border-white/10"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
         >
-          <Card className="backdrop-blur-xl bg-white/90 dark:bg-slate-900/90 border border-white/20 shadow-2xl">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">
-                {isSignUp ? 'Create Account' : 'Welcome Back'}
-              </CardTitle>
-              <p className="text-slate-600 dark:text-slate-400">
-                {isSignUp 
-                  ? 'Start hosting professional meetings today'
-                  : 'Sign in to access your meetings'
-                }
-              </p>
-            </CardHeader>
-            
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {isSignUp && (
-                  <div>
-                    <Label htmlFor="fullName" className="text-slate-700 dark:text-slate-300">
-                      Full Name
-                    </Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-                      <Input
-                        id="fullName"
-                        type="text"
-                        placeholder="Enter your full name"
-                        value={formData.fullName}
-                        onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                        className="pl-10 bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-600"
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <Label htmlFor="email" className="text-slate-700 dark:text-slate-300">
-                    Email Address
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={formData.email}
-                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      className="pl-10 bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-600"
-                      required
-                    />
-                  </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {!isLogin && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-200">Full Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your full name"
+                    required={!isLogin}
+                  />
                 </div>
+              </div>
+            )}
 
-                <div>
-                  <Label htmlFor="password" className="text-slate-700 dark:text-slate-300">
-                    Password {isSignUp && <span className="text-xs text-slate-500">(min. 8 characters)</span>}
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={formData.password}
-                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                      className="pl-10 pr-10 bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-600"
-                      required
-                      minLength={isSignUp ? 8 : undefined}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-200">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>
+            </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
-                  disabled={loading || (securityStatus?.locked ?? false)}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-200">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-11 pr-11 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
                 >
-                  {loading ? (
-                    <div className="flex items-center">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      {isSignUp ? 'Creating Account...' : 'Signing In...'}
-                    </div>
-                  ) : (
-                    isSignUp ? 'Create Account' : 'Sign In'
-                  )}
-                </Button>
-              </form>
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
 
-              <div className="mt-6 text-center">
-                <p className="text-slate-600 dark:text-slate-400">
-                  {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-                </p>
-                <Button
-                  variant="link"
-                  onClick={toggleMode}
-                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  {isSignUp ? 'Sign In' : 'Create Account'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 rounded-lg font-medium flex items-center justify-center space-x-2"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </Button>
+          </form>
 
-        {/* Features */}
-        <motion.div
-          className="mt-8 text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          <div className="grid grid-cols-3 gap-4 text-sm text-slate-600 dark:text-slate-400">
-            <div className="flex flex-col items-center">
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-2">
-                <Video className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <span>HD Video</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-2">
-                <Shield className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <span>Secure</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-2">
-                <User className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <span>Easy Setup</span>
-            </div>
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-gray-300 hover:text-white transition-colors"
+            >
+              {isLogin ? "Don't have an account? " : "Already have an account? "}
+              <span className="text-blue-400 hover:text-blue-300 font-medium">
+                {isLogin ? 'Sign up' : 'Sign in'}
+              </span>
+            </button>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
     </div>
   );
 };
