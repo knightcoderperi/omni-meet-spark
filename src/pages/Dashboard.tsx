@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Video, Users, Calendar, Settings, LogOut, Search, Clock, Copy } from 'lucide-react';
@@ -27,6 +26,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creatingMeeting, setCreatingMeeting] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -38,6 +38,7 @@ const Dashboard = () => {
 
   const fetchMeetings = async () => {
     try {
+      console.log('Fetching meetings for user:', user?.id);
       const { data, error } = await supabase
         .from('meetings')
         .select('*')
@@ -52,6 +53,7 @@ const Dashboard = () => {
           variant: "destructive"
         });
       } else {
+        console.log('Fetched meetings:', data);
         setMeetings(data || []);
       }
     } catch (error) {
@@ -62,36 +64,68 @@ const Dashboard = () => {
   };
 
   const createInstantMeeting = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a meeting",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCreatingMeeting(true);
     try {
+      console.log('Creating meeting for user:', user.id);
       const meetingCode = Math.random().toString(36).substring(2, 12).toUpperCase();
       
+      const meetingData = {
+        host_id: user.id,
+        creator_id: user.id, // Add creator_id for better RLS support
+        title: 'Instant Meeting',
+        description: 'Quick meeting started from dashboard',
+        meeting_code: meetingCode,
+        is_active: true,
+        allow_anonymous: false, // Set to false for better security
+        require_approval: true
+      };
+
+      console.log('Meeting data to insert:', meetingData);
+
       const { data, error } = await supabase
         .from('meetings')
-        .insert({
-          host_id: user?.id,
-          title: 'Instant Meeting',
-          description: 'Quick meeting started from dashboard',
-          meeting_code: meetingCode,
-          is_active: true
-        })
+        .insert(meetingData)
         .select()
         .single();
 
       if (error) {
+        console.error('Error creating meeting:', error);
         toast({
           title: "Error",
-          description: "Failed to create meeting",
+          description: `Failed to create meeting: ${error.message}`,
           variant: "destructive"
         });
       } else {
+        console.log('Meeting created successfully:', data);
         toast({
           title: "Meeting created!",
           description: "Redirecting to meeting room..."
         });
+        
+        // Refresh meetings list
+        fetchMeetings();
+        
+        // Navigate to the new meeting
         navigate(`/meeting/${data.meeting_code}`);
       }
     } catch (error) {
       console.error('Error creating meeting:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setCreatingMeeting(false);
     }
   };
 
@@ -156,10 +190,16 @@ const Dashboard = () => {
                     onClick={createInstantMeeting}>
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-cyan-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                    <Video className="w-6 h-6 text-white" />
+                    {creatingMeeting ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Video className="w-6 h-6 text-white" />
+                    )}
                   </div>
                   <div>
-                    <h3 className="text-white font-medium">New Meeting</h3>
+                    <h3 className="text-white font-medium">
+                      {creatingMeeting ? 'Creating...' : 'New Meeting'}
+                    </h3>
                     <p className="text-gray-400 text-sm">Start instant meeting</p>
                   </div>
                 </div>
