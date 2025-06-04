@@ -24,6 +24,7 @@ import Whiteboard from '@/components/whiteboard/Whiteboard';
 import SmartSummary from '@/components/meeting/SmartSummary';
 import TaskGenerator from '@/components/meeting/TaskGenerator';
 import TranslationChat from '@/components/meeting/TranslationChat';
+import SmartCapsuleSummary from '@/components/meeting/SmartCapsuleSummary';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -68,6 +69,7 @@ const Meeting = () => {
   const [handRaised, setHandRaised] = useState(false);
   const [meetingDuration, setMeetingDuration] = useState(0);
   const [reactions, setReactions] = useState<Array<{id: string, emoji: string, x: number, y: number}>>([]);
+  const [showSmartCapsule, setShowSmartCapsule] = useState(false);
 
   const {
     localStream,
@@ -317,6 +319,16 @@ const Meeting = () => {
 
       {/* Meeting Enhancement Features */}
       <AnimatePresence>
+        {showSmartCapsule && (
+          <SmartCapsuleSummary
+            meetingId={meeting?.id || ''}
+            isVisible={showSmartCapsule}
+            onClose={() => setShowSmartCapsule(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {showSmartSummary && (
           <SmartSummary
             meetingId={meeting?.id || ''}
@@ -431,6 +443,14 @@ const Meeting = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              <Button 
+                variant="ghost" 
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
+                onClick={() => setShowSmartCapsule(true)}
+              >
+                <Brain className="w-4 h-4 mr-2" />
+                Smart Capsule
+              </Button>
               <Button 
                 variant="ghost" 
                 className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
