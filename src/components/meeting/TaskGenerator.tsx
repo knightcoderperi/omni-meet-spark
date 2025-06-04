@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -155,7 +156,7 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
     await extractTasksFromTranscript(extractionText, { maxTasks: maxTasks[0] });
   };
 
-  const createTasksInPlatforms = async (tasks: any[]) => {
+  const handleCreateTasksInPlatforms = async (tasks: any[]) => {
     await createTasksInPlatforms(tasks);
   };
 
