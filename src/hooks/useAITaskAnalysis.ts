@@ -1,0 +1,166 @@
+
+import { useState, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
+
+interface MeetingAnalysisResult {
+  summary: string;
+  keyTopics: string[];
+  actionItems: string[];
+  decisions: string[];
+  participants: string[];
+  nextSteps: string[];
+}
+
+export const useAITaskAnalysis = () => {
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<MeetingAnalysisResult | null>(null);
+  const { toast } = useToast();
+
+  const analyzeMeetingContent = useCallback(async (content: string): Promise<MeetingAnalysisResult | null> => {
+    if (!content || content.trim().length < 100) {
+      toast({
+        title: "Insufficient Content",
+        description: "Please provide more meeting content for analysis",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer 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',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama3-8b-8192',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert meeting analyst. Analyze meeting content and extract structured information.
+              
+              Provide analysis in this JSON format:
+              {
+                "summary": "Brief meeting summary (2-3 sentences)",
+                "keyTopics": ["topic1", "topic2", "topic3"],
+                "actionItems": ["action1", "action2", "action3"],
+                "decisions": ["decision1", "decision2"],
+                "participants": ["name1", "name2"],
+                "nextSteps": ["step1", "step2"]
+              }
+              
+              Focus on:
+              - Clear, actionable items
+              - Specific decisions made
+              - Identified participants
+              - Concrete next steps
+              
+              Return only valid JSON.`
+            },
+            {
+              role: 'user',
+              content: `Analyze this meeting content and extract key information:\n\n${content}`
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 1500
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content;
+
+      if (!aiResponse) {
+        throw new Error('No response from AI');
+      }
+
+      let parsedResult;
+      try {
+        parsedResult = JSON.parse(aiResponse);
+      } catch (parseError) {
+        // Try to extract JSON from response if it's wrapped in markdown
+        const jsonMatch = aiResponse.match(/```json\n([\s\S]*?)\n```/) || aiResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsedResult = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        } else {
+          throw new Error('Invalid JSON response from AI');
+        }
+      }
+
+      const result: MeetingAnalysisResult = {
+        summary: parsedResult.summary || 'Meeting analysis completed',
+        keyTopics: Array.isArray(parsedResult.keyTopics) ? parsedResult.keyTopics.slice(0, 5) : [],
+        actionItems: Array.isArray(parsedResult.actionItems) ? parsedResult.actionItems.slice(0, 8) : [],
+        decisions: Array.isArray(parsedResult.decisions) ? parsedResult.decisions.slice(0, 5) : [],
+        participants: Array.isArray(parsedResult.participants) ? parsedResult.participants.slice(0, 10) : [],
+        nextSteps: Array.isArray(parsedResult.nextSteps) ? parsedResult.nextSteps.slice(0, 5) : []
+      };
+
+      setAnalysisResult(result);
+      
+      toast({
+        title: "Meeting Analysis Complete",
+        description: "AI has successfully analyzed the meeting content",
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error analyzing meeting content:', error);
+      toast({
+        title: "Analysis Failed",
+        description: "Could not analyze meeting content. Please try again.",
+        variant: "destructive"
+      });
+      return null;
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [toast]);
+
+  const generateMeetingReport = useCallback(async (analysis: MeetingAnalysisResult) => {
+    const report = `
+# Meeting Analysis Report
+
+## Summary
+${analysis.summary}
+
+## Key Topics Discussed
+${analysis.keyTopics.map(topic => `- ${topic}`).join('\n')}
+
+## Action Items
+${analysis.actionItems.map(item => `- [ ] ${item}`).join('\n')}
+
+## Decisions Made
+${analysis.decisions.map(decision => `- ${decision}`).join('\n')}
+
+## Participants
+${analysis.participants.map(participant => `- ${participant}`).join('\n')}
+
+## Next Steps
+${analysis.nextSteps.map(step => `- ${step}`).join('\n')}
+
+---
+*Generated by AI Task Generator on ${new Date().toLocaleDateString()}*
+    `;
+
+    return report.trim();
+  }, []);
+
+  const clearAnalysis = useCallback(() => {
+    setAnalysisResult(null);
+  }, []);
+
+  return {
+    isAnalyzing,
+    analysisResult,
+    analyzeMeetingContent,
+    generateMeetingReport,
+    clearAnalysis
+  };
+};

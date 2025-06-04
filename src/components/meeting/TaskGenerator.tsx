@@ -1,9 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Lightbulb, X, Plus, Target, Calendar, User, Flag,
-  CheckCircle, Clock, AlertTriangle, Sparkles
+  CheckCircle, Clock, AlertTriangle, Sparkles, Brain,
+  Zap, Download, Upload, Settings, ExternalLink,
+  Github, CheckSquare, Book, Server
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,8 +12,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTaskExtraction } from '@/hooks/useTaskExtraction';
+import { useTaskManagement } from '@/hooks/useTaskManagement';
 
 interface TaskGeneratorProps {
   meetingId: string;
@@ -41,6 +45,10 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showAIExtraction, setShowAIExtraction] = useState(false);
+  const [showPlatformSettings, setShowPlatformSettings] = useState(false);
+  const [extractionText, setExtractionText] = useState('');
+  const [maxTasks, setMaxTasks] = useState([10]);
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -48,6 +56,22 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
     due_date: ''
   });
   const { toast } = useToast();
+
+  const {
+    isExtracting,
+    extractedTasks,
+    extractTasksFromTranscript,
+    extractTasksFromMeetingContent,
+    setExtractedTasks
+  } = useTaskExtraction();
+
+  const {
+    platforms,
+    isCreatingTasks,
+    createTasksInPlatforms,
+    togglePlatform,
+    getLocalTasks
+  } = useTaskManagement();
 
   useEffect(() => {
     if (isVisible) {
@@ -78,52 +102,34 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
   const generateAITasks = async () => {
     setGenerating(true);
     try {
-      // Simulate AI processing - in real implementation, this would call your AI service
-      await new Promise(resolve => setTimeout(resolve, 2500));
-
-      const mockTasks = [
-        {
-          meeting_id: meetingId,
-          title: 'Review quarterly budget allocation',
-          description: 'Analyze current spending and prepare recommendations for Q4 budget adjustments',
-          priority: 'high',
-          status: 'pending',
-          ai_generated: true,
-          due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          meeting_id: meetingId,
-          title: 'Schedule stakeholder follow-up meetings',
-          description: 'Coordinate with key stakeholders to discuss project timeline updates',
-          priority: 'medium',
-          status: 'pending',
-          ai_generated: true,
-          due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          meeting_id: meetingId,
-          title: 'Update project documentation',
-          description: 'Reflect recent decisions and changes in project specifications',
-          priority: 'medium',
-          status: 'pending',
-          ai_generated: true,
-          due_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ];
-
-      const { data, error } = await supabase
-        .from('action_items')
-        .insert(mockTasks)
-        .select();
-
-      if (error) throw error;
-
-      setActionItems(prev => [...(data || []), ...prev]);
+      const extractedTasks = await extractTasksFromMeetingContent(meetingId);
       
-      toast({
-        title: "AI Tasks Generated",
-        description: `${data?.length || 0} action items have been created based on meeting content`,
-      });
+      if (extractedTasks.length > 0) {
+        // Convert extracted tasks to database format
+        const tasksToInsert = extractedTasks.map(task => ({
+          meeting_id: meetingId,
+          title: task.task,
+          description: task.description,
+          priority: task.priority,
+          due_date: task.due_date,
+          status: 'pending',
+          ai_generated: true
+        }));
+
+        const { data, error } = await supabase
+          .from('action_items')
+          .insert(tasksToInsert)
+          .select();
+
+        if (error) throw error;
+
+        setActionItems(prev => [...(data || []), ...prev]);
+        
+        toast({
+          title: "AI Tasks Generated",
+          description: `${data?.length || 0} action items created from meeting analysis`,
+        });
+      }
     } catch (error) {
       console.error('Error generating AI tasks:', error);
       toast({
@@ -134,6 +140,23 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleAIExtraction = async () => {
+    if (!extractionText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter some text to extract tasks from",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    await extractTasksFromTranscript(extractionText, { maxTasks: maxTasks[0] });
+  };
+
+  const createTasksInPlatforms = async (tasks: any[]) => {
+    await createTasksInPlatforms(tasks);
   };
 
   const addManualTask = async () => {
@@ -226,6 +249,16 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
     }
   };
 
+  const getPlatformIcon = (platformId: string) => {
+    switch (platformId) {
+      case 'github': return <Github className="w-4 h-4" />;
+      case 'todoist': return <CheckSquare className="w-4 h-4" />;
+      case 'notion': return <Book className="w-4 h-4" />;
+      case 'local': return <Server className="w-4 h-4" />;
+      default: return <Target className="w-4 h-4" />;
+    }
+  };
+
   if (!isVisible) return null;
 
   return (
@@ -236,7 +269,7 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
@@ -253,7 +286,7 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
                   AI Task Generator
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400">
-                  Generate and manage action items from meeting content
+                  Extract and manage action items with AI-powered analysis
                 </p>
               </div>
             </div>
@@ -269,7 +302,7 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-12rem)]">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
             <div className="flex items-center space-x-4">
               <Button
                 onClick={generateAITasks}
@@ -279,16 +312,25 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
                 {generating ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    Generating Tasks...
+                    Analyzing Meeting...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Generate AI Tasks
+                    <Brain className="w-4 h-4 mr-2" />
+                    Analyze Meeting
                   </>
                 )}
               </Button>
               
+              <Button
+                variant="outline"
+                onClick={() => setShowAIExtraction(!showAIExtraction)}
+                className="border-purple-300 text-purple-700 hover:bg-purple-50"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Extract from Text
+              </Button>
+
               <Button
                 variant="outline"
                 onClick={() => setShowAddForm(!showAddForm)}
@@ -296,13 +338,225 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
                 <Plus className="w-4 h-4 mr-2" />
                 Add Manual Task
               </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => setShowPlatformSettings(!showPlatformSettings)}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Platforms
+              </Button>
             </div>
             
-            <Badge variant="secondary">
-              {actionItems.length} tasks
-            </Badge>
+            <div className="flex items-center space-x-4">
+              <Badge variant="secondary">
+                {actionItems.length} tasks
+              </Badge>
+              {extractedTasks.length > 0 && (
+                <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                  {extractedTasks.length} extracted
+                </Badge>
+              )}
+            </div>
           </div>
 
+          {/* AI Text Extraction Panel */}
+          <AnimatePresence>
+            {showAIExtraction && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-6"
+              >
+                <Card className="border-2 border-purple-200 dark:border-purple-700">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-purple-800 dark:text-purple-300">
+                      <Brain className="w-5 h-5 mr-2" />
+                      AI Task Extraction
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Textarea
+                      placeholder="Paste meeting transcript, notes, or any text to extract actionable tasks..."
+                      value={extractionText}
+                      onChange={(e) => setExtractionText(e.target.value)}
+                      rows={6}
+                      className="min-h-32"
+                    />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <label className="text-sm font-medium">Max Tasks:</label>
+                        <div className="w-32">
+                          <Slider
+                            value={maxTasks}
+                            onValueChange={setMaxTasks}
+                            max={20}
+                            min={1}
+                            step={1}
+                            className="cursor-pointer"
+                          />
+                        </div>
+                        <span className="text-sm text-slate-600">{maxTasks[0]}</span>
+                      </div>
+                      <Button
+                        onClick={handleAIExtraction}
+                        disabled={isExtracting || !extractionText.trim()}
+                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                      >
+                        {isExtracting ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                            Extracting...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Extract Tasks
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Platform Settings Panel */}
+          <AnimatePresence>
+            {showPlatformSettings && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-6"
+              >
+                <Card className="border-2 border-blue-200 dark:border-blue-700">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-blue-800 dark:text-blue-300">
+                      <Settings className="w-5 h-5 mr-2" />
+                      Task Management Platforms
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      {platforms.map(platform => (
+                        <div
+                          key={platform.id}
+                          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                            platform.enabled 
+                              ? 'border-green-300 bg-green-50 dark:bg-green-900/20' 
+                              : 'border-slate-200 dark:border-slate-700'
+                          }`}
+                          onClick={() => togglePlatform(platform.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              {getPlatformIcon(platform.id)}
+                              <span className="font-medium">{platform.name}</span>
+                            </div>
+                            <div className={`w-4 h-4 rounded-full ${
+                              platform.enabled ? 'bg-green-500' : 'bg-slate-300'
+                            }`} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Extracted Tasks Preview */}
+          <AnimatePresence>
+            {extractedTasks.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-6"
+              >
+                <Card className="border-2 border-green-200 dark:border-green-700">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center text-green-800 dark:text-green-300">
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Extracted Tasks ({extractedTasks.length})
+                      </CardTitle>
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={() => createTasksInPlatforms(extractedTasks)}
+                          disabled={isCreatingTasks}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          {isCreatingTasks ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                              Creating...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-4 h-4 mr-2" />
+                              Create in Platforms
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          onClick={() => setExtractedTasks([])}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {extractedTasks.map((task, index) => (
+                        <div
+                          key={index}
+                          className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-slate-900 dark:text-white mb-1">
+                                {task.task}
+                              </h4>
+                              <div className="flex items-center space-x-2 text-xs">
+                                <Badge className={getPriorityColor(task.priority)}>
+                                  {task.priority}
+                                </Badge>
+                                <Badge variant="outline">{task.category}</Badge>
+                                {task.assignee && (
+                                  <Badge variant="secondary">
+                                    <User className="w-3 h-3 mr-1" />
+                                    {task.assignee}
+                                  </Badge>
+                                )}
+                                {task.due_date && (
+                                  <Badge variant="outline">
+                                    <Calendar className="w-3 h-3 mr-1" />
+                                    {task.due_date}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Manual Task Addition Form */}
           <AnimatePresence>
             {showAddForm && (
               <motion.div
@@ -361,6 +615,7 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
             )}
           </AnimatePresence>
 
+          {/* Existing Tasks List */}
           <div className="space-y-4">
             {actionItems.length === 0 ? (
               <div className="text-center py-12">
@@ -369,7 +624,7 @@ const TaskGenerator: React.FC<TaskGeneratorProps> = ({
                   No Tasks Yet
                 </h3>
                 <p className="text-slate-600 dark:text-slate-400 mb-6">
-                  Generate AI-powered action items or add tasks manually
+                  Analyze meeting content or extract tasks from text to get started
                 </p>
               </div>
             ) : (
