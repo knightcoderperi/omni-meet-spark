@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Languages, X, Send, Globe, Volume2, Copy,
-  MessageSquare, Mic, MicOff, Settings
+  MessageSquare, Mic, MicOff, Settings, Wand2, 
+  RefreshCw, Zap
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { TranslationService } from '@/services/translationService';
 
 interface TranslationChatProps {
   meetingId: string;
@@ -30,21 +31,6 @@ interface Translation {
   created_at: string;
 }
 
-const languages = [
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Spanish' },
-  { code: 'fr', name: 'French' },
-  { code: 'de', name: 'German' },
-  { code: 'it', name: 'Italian' },
-  { code: 'pt', name: 'Portuguese' },
-  { code: 'ru', name: 'Russian' },
-  { code: 'ja', name: 'Japanese' },
-  { code: 'ko', name: 'Korean' },
-  { code: 'zh', name: 'Chinese' },
-  { code: 'ar', name: 'Arabic' },
-  { code: 'hi', name: 'Hindi' }
-];
-
 const TranslationChat: React.FC<TranslationChatProps> = ({
   meetingId,
   isVisible,
@@ -56,12 +42,28 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
   const [targetLanguage, setTargetLanguage] = useState('es');
   const [isListening, setIsListening] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [autoDetect, setAutoDetect] = useState(false);
+  const [supportedLanguages, setSupportedLanguages] = useState([
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'de', name: 'German' },
+    { code: 'it', name: 'Italian' },
+    { code: 'pt', name: 'Portuguese' },
+    { code: 'ru', name: 'Russian' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'ko', name: 'Korean' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'ar', name: 'Arabic' },
+    { code: 'hi', name: 'Hindi' }
+  ]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     if (isVisible) {
       fetchTranslations();
+      loadSupportedLanguages();
     }
   }, [isVisible, meetingId]);
 
@@ -71,6 +73,16 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const loadSupportedLanguages = async () => {
+    try {
+      const languages = await TranslationService.getSupportedLanguages();
+      setSupportedLanguages(languages);
+    } catch (error) {
+      console.error('Failed to load supported languages:', error);
+      // Keep default languages if API fails
+    }
   };
 
   const fetchTranslations = async () => {
@@ -98,32 +110,29 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
 
     setIsTranslating(true);
     try {
-      // Simulate translation API call - in real implementation, this would call a translation service
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let detectedSourceLang = sourceLanguage;
+      
+      // Auto-detect language if enabled
+      if (autoDetect) {
+        detectedSourceLang = await TranslationService.detectLanguage(inputText);
+        console.log(`Auto-detected language: ${detectedSourceLang}`);
+      }
 
-      const mockTranslations: { [key: string]: { [key: string]: string } } = {
-        'en': {
-          'es': 'Hola, ¿cómo estás?',
-          'fr': 'Bonjour, comment allez-vous?',
-          'de': 'Hallo, wie geht es dir?'
-        },
-        'es': {
-          'en': 'Hello, how are you?',
-          'fr': 'Bonjour, comment allez-vous?'
-        }
-      };
-
-      const translatedText = mockTranslations[sourceLanguage]?.[targetLanguage] || 
-        `[Translated from ${languages.find(l => l.code === sourceLanguage)?.name}]: ${inputText}`;
+      // Perform translation using real API
+      const result = await TranslationService.translateText(
+        inputText,
+        detectedSourceLang,
+        targetLanguage
+      );
 
       const newTranslation = {
         meeting_id: meetingId,
         original_text: inputText,
-        translated_text: translatedText,
-        source_language: sourceLanguage,
+        translated_text: result.translatedText,
+        source_language: detectedSourceLang,
         target_language: targetLanguage,
         timestamp_seconds: Date.now() / 1000,
-        confidence_score: 0.95
+        confidence_score: result.confidence || 0.85
       };
 
       const { data, error } = await supabase
@@ -138,14 +147,14 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
       setInputText('');
       
       toast({
-        title: "Text Translated",
-        description: `Translated from ${languages.find(l => l.code === sourceLanguage)?.name} to ${languages.find(l => l.code === targetLanguage)?.name}`,
+        title: "Translation Complete",
+        description: `Translated from ${supportedLanguages.find(l => l.code === detectedSourceLang)?.name} to ${supportedLanguages.find(l => l.code === targetLanguage)?.name}`,
       });
     } catch (error) {
-      console.error('Error translating text:', error);
+      console.error('Translation error:', error);
       toast({
-        title: "Error",
-        description: "Failed to translate text",
+        title: "Translation Failed",
+        description: error instanceof Error ? error.message : "Failed to translate text",
         variant: "destructive"
       });
     } finally {
@@ -154,16 +163,58 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
   };
 
   const startVoiceTranslation = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast({
+        title: "Speech Recognition Not Supported",
+        description: "Your browser doesn't support speech recognition",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsListening(true);
-    // Simulate voice recognition
-    setTimeout(() => {
-      setInputText("This is a sample voice input that would be transcribed and translated");
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = sourceLanguage === 'zh' ? 'zh-CN' : sourceLanguage;
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInputText(transcript);
       setIsListening(false);
+      
       toast({
         title: "Voice Input Captured",
-        description: "Speech has been converted to text for translation",
+        description: "Speech converted to text successfully",
       });
-    }, 3000);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      toast({
+        title: "Speech Recognition Error",
+        description: "Failed to capture speech. Please try again.",
+        variant: "destructive"
+      });
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+
+    // Fallback timeout
+    setTimeout(() => {
+      if (isListening) {
+        recognition.stop();
+        setIsListening(false);
+      }
+    }, 10000);
   };
 
   const copyTranslation = (text: string) => {
@@ -175,10 +226,35 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
   };
 
   const playAudio = (text: string, language: string) => {
-    // Simulate text-to-speech
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language === 'zh' ? 'zh-CN' : language;
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      
+      speechSynthesis.speak(utterance);
+      
+      toast({
+        title: "Playing Audio",
+        description: `Speaking in ${supportedLanguages.find(l => l.code === language)?.name}`,
+      });
+    } else {
+      toast({
+        title: "Text-to-Speech Not Supported",
+        description: "Your browser doesn't support text-to-speech",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const swapLanguages = () => {
+    const temp = sourceLanguage;
+    setSourceLanguage(targetLanguage);
+    setTargetLanguage(temp);
+    
     toast({
-      title: "Playing Audio",
-      description: `Speaking text in ${languages.find(l => l.code === language)?.name}`,
+      title: "Languages Swapped",
+      description: `Now translating from ${supportedLanguages.find(l => l.code === targetLanguage)?.name} to ${supportedLanguages.find(l => l.code === temp)?.name}`,
     });
   };
 
@@ -198,6 +274,7 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: "spring", damping: 20, stiffness: 300 }}
       >
+        {/* Header */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -209,18 +286,24 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
                   Translation Chatbot
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400">
-                  Real-time translation for seamless global communication
+                  Real-time translation powered by free APIs
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-            >
-              <X className="w-5 h-5" />
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Badge variant="outline" className="text-xs">
+                <Zap className="w-3 h-3 mr-1" />
+                LibreTranslate
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -230,12 +313,12 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
             <div className="flex items-center justify-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Globe className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
-                  <SelectTrigger className="w-32">
+                <Select value={sourceLanguage} onValueChange={setSourceLanguage} disabled={autoDetect}>
+                  <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {languages.map(lang => (
+                    {supportedLanguages.map(lang => (
                       <SelectItem key={lang.code} value={lang.code}>
                         {lang.name}
                       </SelectItem>
@@ -244,22 +327,24 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
                 </Select>
               </div>
               
-              <motion.div
-                className="text-slate-400"
-                animate={{ rotate: 180 }}
-                transition={{ duration: 0.3 }}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={swapLanguages}
+                className="h-8 w-8 p-0"
+                disabled={autoDetect}
               >
-                →
-              </motion.div>
+                <RefreshCw className="w-4 h-4" />
+              </Button>
               
               <div className="flex items-center space-x-2">
                 <Globe className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                 <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {languages.map(lang => (
+                    {supportedLanguages.map(lang => (
                       <SelectItem key={lang.code} value={lang.code}>
                         {lang.name}
                       </SelectItem>
@@ -267,6 +352,18 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            
+            <div className="flex items-center justify-center mt-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setAutoDetect(!autoDetect)}
+                className={`text-xs ${autoDetect ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : ''}`}
+              >
+                <Wand2 className="w-3 h-3 mr-1" />
+                Auto-detect source language
+              </Button>
             </div>
           </div>
 
@@ -295,7 +392,7 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
                     <div className="mb-3">
                       <div className="flex items-center justify-between mb-2">
                         <Badge variant="outline" className="text-xs">
-                          {languages.find(l => l.code === translation.source_language)?.name}
+                          {supportedLanguages.find(l => l.code === translation.source_language)?.name}
                         </Badge>
                         <div className="flex items-center space-x-1">
                           <Button
@@ -326,7 +423,7 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-2">
                           <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs">
-                            {languages.find(l => l.code === translation.target_language)?.name}
+                            {supportedLanguages.find(l => l.code === translation.target_language)?.name}
                           </Badge>
                           <Badge variant="outline" className="text-xs">
                             {Math.round(translation.confidence_score * 100)}% confidence
@@ -376,7 +473,7 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
               </Button>
               
               <Input
-                placeholder={`Type in ${languages.find(l => l.code === sourceLanguage)?.name}...`}
+                placeholder={`Type in ${autoDetect ? 'any language' : supportedLanguages.find(l => l.code === sourceLanguage)?.name}...`}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && translateText()}
@@ -409,6 +506,10 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
                 </div>
               </motion.div>
             )}
+            
+            <p className="text-xs text-slate-500 dark:text-gray-400 mt-2 text-center">
+              Press Enter to translate • Click mic for voice input • Free translation via LibreTranslate
+            </p>
           </div>
         </div>
       </motion.div>
