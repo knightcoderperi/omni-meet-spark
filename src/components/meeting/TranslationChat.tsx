@@ -192,7 +192,7 @@ const TranslationChat: React.FC<TranslationChatProps> = ({
       });
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
       toast({
