@@ -64,7 +64,7 @@ const ScheduleMeetingModal = ({ isOpen, onClose, onMeetingScheduled }: ScheduleM
         require_approval: formData.requireApproval,
         max_participants: formData.maxParticipants,
         password_protected: true,
-        status: 'scheduled'
+        status: 'scheduled' as const
       };
 
       const { data, error } = await supabase
