@@ -237,6 +237,12 @@ const Meeting = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const openValidationDashboard = () => {
+    if (meeting?.id) {
+      window.open(`/validation/${meeting.id}`, '_blank');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
@@ -512,6 +518,18 @@ const Meeting = () => {
               >
                 <Settings className="w-4 h-4" />
               </Button>
+              
+              {/* Add System Validation Button */}
+              {meeting?.host_id === user?.id && (
+                <Button 
+                  variant="ghost" 
+                  className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
+                  onClick={openValidationDashboard}
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                  AI Validation
+                </Button>
+              )}
             </div>
           </div>
         </motion.header>
