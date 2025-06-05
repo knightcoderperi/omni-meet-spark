@@ -200,10 +200,12 @@ export type Database = {
           device_info: Json | null
           email: string | null
           guest_name: string | null
+          host_notes: string | null
           id: string
           joined_lobby_at: string | null
           meeting_id: string | null
           network_quality: Json | null
+          rejection_reason: string | null
           user_id: string | null
           wait_time_estimate: number | null
         }
@@ -216,10 +218,12 @@ export type Database = {
           device_info?: Json | null
           email?: string | null
           guest_name?: string | null
+          host_notes?: string | null
           id?: string
           joined_lobby_at?: string | null
           meeting_id?: string | null
           network_quality?: Json | null
+          rejection_reason?: string | null
           user_id?: string | null
           wait_time_estimate?: number | null
         }
@@ -232,10 +236,12 @@ export type Database = {
           device_info?: Json | null
           email?: string | null
           guest_name?: string | null
+          host_notes?: string | null
           id?: string
           joined_lobby_at?: string | null
           meeting_id?: string | null
           network_quality?: Json | null
+          rejection_reason?: string | null
           user_id?: string | null
           wait_time_estimate?: number | null
         }
@@ -653,6 +659,7 @@ export type Database = {
           lobby_enabled: boolean | null
           max_participants: number | null
           meeting_code: string
+          meeting_link_expires_at: string | null
           meeting_password: string | null
           participants_count: number | null
           password_protected: boolean | null
@@ -660,6 +667,7 @@ export type Database = {
           require_approval: boolean | null
           scheduled_time: string | null
           settings: Json | null
+          shareable_link: string | null
           status: Database["public"]["Enums"]["meeting_status"] | null
           title: string
           transcription_enabled: boolean | null
@@ -687,6 +695,7 @@ export type Database = {
           lobby_enabled?: boolean | null
           max_participants?: number | null
           meeting_code: string
+          meeting_link_expires_at?: string | null
           meeting_password?: string | null
           participants_count?: number | null
           password_protected?: boolean | null
@@ -694,6 +703,7 @@ export type Database = {
           require_approval?: boolean | null
           scheduled_time?: string | null
           settings?: Json | null
+          shareable_link?: string | null
           status?: Database["public"]["Enums"]["meeting_status"] | null
           title: string
           transcription_enabled?: boolean | null
@@ -721,6 +731,7 @@ export type Database = {
           lobby_enabled?: boolean | null
           max_participants?: number | null
           meeting_code?: string
+          meeting_link_expires_at?: string | null
           meeting_password?: string | null
           participants_count?: number | null
           password_protected?: boolean | null
@@ -728,6 +739,7 @@ export type Database = {
           require_approval?: boolean | null
           scheduled_time?: string | null
           settings?: Json | null
+          shareable_link?: string | null
           status?: Database["public"]["Enums"]["meeting_status"] | null
           title?: string
           transcription_enabled?: boolean | null
@@ -994,6 +1006,10 @@ export type Database = {
     Functions: {
       generate_meeting_code: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_shareable_link: {
+        Args: { meeting_code: string }
         Returns: string
       }
       handle_failed_login: {
