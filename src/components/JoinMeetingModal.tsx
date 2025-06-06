@@ -14,6 +14,15 @@ interface JoinMeetingModalProps {
   onClose: () => void;
 }
 
+interface CanJoinMeetingResponse {
+  can_join: boolean;
+  reason?: string;
+  meeting_id?: string;
+  requires_approval?: boolean;
+  is_host?: boolean;
+  password_required?: boolean;
+}
+
 const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -50,7 +59,7 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
     setLoading(true);
     try {
       // Use the database function to check if user can join
-      const { data: joinCheck, error: joinError } = await supabase
+      const { data: joinCheckData, error: joinError } = await supabase
         .rpc('can_join_meeting', {
           meeting_code_param: formData.meetingCode.toUpperCase(),
           user_id_param: user?.id || null
@@ -59,6 +68,9 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
       if (joinError) {
         throw joinError;
       }
+
+      // Cast the response to our interface
+      const joinCheck = joinCheckData as CanJoinMeetingResponse;
 
       if (!joinCheck.can_join) {
         toast({
