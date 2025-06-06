@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gamepad2, Trophy, Star, RotateCcw } from 'lucide-react';
+import { Gamepad2, Trophy, Star, RotateCcw, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 interface LobbyGameProps {
   isVisible: boolean;
+  waitingForApproval?: boolean;
 }
 
-const LobbyGame: React.FC<LobbyGameProps> = ({ isVisible }) => {
+const LobbyGame: React.FC<LobbyGameProps> = ({ isVisible, waitingForApproval = false }) => {
   const [gameType, setGameType] = useState<'memory' | 'math' | 'riddle'>('memory');
   const [score, setScore] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
@@ -30,7 +31,9 @@ const LobbyGame: React.FC<LobbyGameProps> = ({ isVisible }) => {
     { question: "I speak without a mouth and hear without ears. What am I?", answer: "echo" },
     { question: "The more you take, the more you leave behind. What am I?", answer: "footsteps" },
     { question: "I have cities, but no houses. I have mountains, but no trees. What am I?", answer: "map" },
-    { question: "What has keys but no locks, space but no room?", answer: "keyboard" }
+    { question: "What has keys but no locks, space but no room?", answer: "keyboard" },
+    { question: "What comes once in a minute, twice in a moment, but never in a thousand years?", answer: "m" },
+    { question: "What gets wet while drying?", answer: "towel" }
   ];
   const [currentRiddle, setCurrentRiddle] = useState(0);
   const [riddleAnswer, setRiddleAnswer] = useState('');
@@ -91,7 +94,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({ isVisible }) => {
     setGameType(type);
     setGameStarted(true);
     setScore(0);
-    setTimeLeft(30);
+    setTimeLeft(60); // Increased time for better experience
     setGameOver(false);
     setCurrentQuestion(0);
 
@@ -107,7 +110,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({ isVisible }) => {
   const resetGame = () => {
     setGameStarted(false);
     setScore(0);
-    setTimeLeft(30);
+    setTimeLeft(60);
     setGameOver(false);
     setCurrentQuestion(0);
     setMemoryCards([]);
@@ -185,12 +188,26 @@ const LobbyGame: React.FC<LobbyGameProps> = ({ isVisible }) => {
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center space-x-2 mb-4">
               <Gamepad2 className="w-6 h-6 text-purple-400" />
-              <h3 className="text-xl font-bold text-white">Lobby Games</h3>
+              <h3 className="text-xl font-bold text-white">
+                {waitingForApproval ? 'While You Wait...' : 'Lobby Games'}
+              </h3>
             </div>
+
+            {waitingForApproval && (
+              <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
+                <div className="flex items-center justify-center space-x-2 text-yellow-400">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm">Waiting for host approval</span>
+                </div>
+                <p className="text-xs text-yellow-300 mt-1">Play some games to pass the time!</p>
+              </div>
+            )}
 
             {!gameStarted ? (
               <div className="space-y-4">
-                <p className="text-gray-300 text-sm">Play a quick game while waiting!</p>
+                <p className="text-gray-300 text-sm">
+                  {waitingForApproval ? 'Keep yourself entertained!' : 'Play a quick game while waiting!'}
+                </p>
                 
                 <div className="grid grid-cols-1 gap-3">
                   <Button

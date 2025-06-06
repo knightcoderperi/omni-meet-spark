@@ -1004,6 +1004,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_join_meeting: {
+        Args: { meeting_code_param: string; user_id_param?: string }
+        Returns: Json
+      }
       generate_meeting_code: {
         Args: Record<PropertyKey, never>
         Returns: string

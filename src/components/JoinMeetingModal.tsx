@@ -49,24 +49,28 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
 
     setLoading(true);
     try {
-      // Check if meeting exists and validate password
-      const { data: meeting, error } = await supabase
-        .from('meetings')
-        .select('*')
-        .eq('meeting_code', formData.meetingCode.toUpperCase())
-        .single();
+      // Use the database function to check if user can join
+      const { data: joinCheck, error: joinError } = await supabase
+        .rpc('can_join_meeting', {
+          meeting_code_param: formData.meetingCode.toUpperCase(),
+          user_id_param: user?.id || null
+        });
 
-      if (error || !meeting) {
+      if (joinError) {
+        throw joinError;
+      }
+
+      if (!joinCheck.can_join) {
         toast({
-          title: "Meeting not found",
-          description: "The meeting code you entered is invalid",
+          title: "Cannot join meeting",
+          description: joinCheck.reason,
           variant: "destructive"
         });
         return;
       }
 
-      // Check if meeting requires password
-      if (meeting.password_protected && meeting.meeting_password) {
+      // Check password if required
+      if (joinCheck.password_required && !joinCheck.is_host) {
         if (!formData.password) {
           toast({
             title: "Password required",
@@ -76,7 +80,14 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
           return;
         }
 
-        if (formData.password !== meeting.meeting_password) {
+        // Verify password
+        const { data: meeting, error: meetingError } = await supabase
+          .from('meetings')
+          .select('meeting_password')
+          .eq('id', joinCheck.meeting_id)
+          .single();
+
+        if (meetingError || formData.password !== meeting.meeting_password) {
           toast({
             title: "Incorrect password",
             description: "The password you entered is incorrect",
@@ -86,84 +97,87 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
         }
       }
 
-      // Check if meeting is expired
-      if (meeting.scheduled_time) {
-        const scheduledTime = new Date(meeting.scheduled_time);
-        const currentTime = new Date();
-        const endTime = new Date(scheduledTime.getTime() + (meeting.duration_minutes * 60000));
-        
-        if (currentTime > endTime) {
-          toast({
-            title: "Meeting expired",
-            description: "This meeting has already ended",
-            variant: "destructive"
-          });
-          return;
-        }
-      }
-
-      // If meeting requires approval, add to lobby queue
-      if (meeting.require_approval) {
-        const { data: lobbyEntry, error: lobbyError } = await supabase
-          .from('lobby_queue')
-          .insert({
-            meeting_id: meeting.id,
-            user_id: user?.id || null,
-            guest_name: user ? null : formData.guestName,
-            email: user?.email || null,
-            device_info: {
-              userAgent: navigator.userAgent,
-              platform: navigator.platform
-            }
-          })
-          .select()
-          .single();
-
-        if (lobbyError) {
-          throw lobbyError;
-        }
-
-        setLobbyId(lobbyEntry.id);
-        setStep('waiting');
-        
-        // Set up real-time listener for approval status
-        const channel = supabase
-          .channel(`lobby-${lobbyEntry.id}`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'lobby_queue',
-              filter: `id=eq.${lobbyEntry.id}`
-            },
-            (payload) => {
-              const status = payload.new.approval_status;
-              if (status === 'approved') {
-                setStep('approved');
-                setTimeout(() => {
-                  navigate(`/meeting/${meeting.meeting_code}`);
-                  onClose();
-                }, 2000);
-              } else if (status === 'rejected') {
-                setStep('rejected');
+      // If user is host or meeting doesn't require approval, join directly
+      if (joinCheck.is_host || !joinCheck.requires_approval) {
+        // Add to participants if not host
+        if (!joinCheck.is_host) {
+          await supabase
+            .from('meeting_participants')
+            .insert({
+              meeting_id: joinCheck.meeting_id,
+              user_id: user?.id || null,
+              guest_name: user ? null : formData.guestName,
+              email: user?.email || null,
+              status: 'approved',
+              is_host: false,
+              device_info: {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform
               }
-            }
-          )
-          .subscribe();
+            });
+        }
 
-        // Cleanup function will be handled by component unmount
+        toast({
+          title: "Joining meeting...",
+          description: "Redirecting to meeting room"
+        });
+
+        navigate(`/meeting/${formData.meetingCode.toUpperCase()}`);
+        onClose();
         return;
       }
 
-      // Direct join if no approval required
-      toast({
-        title: "Joining meeting...",
-        description: "Redirecting to meeting room"
-      });
+      // Add to lobby queue for approval
+      const { data: lobbyEntry, error: lobbyError } = await supabase
+        .from('lobby_queue')
+        .insert({
+          meeting_id: joinCheck.meeting_id,
+          user_id: user?.id || null,
+          guest_name: user ? null : formData.guestName,
+          email: user?.email || null,
+          device_info: {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform
+          },
+          network_quality: {
+            connection: navigator.onLine ? 'online' : 'offline'
+          }
+        })
+        .select()
+        .single();
 
-      navigate(`/meeting/${meeting.meeting_code}`);
-      onClose();
+      if (lobbyError) {
+        throw lobbyError;
+      }
+
+      setLobbyId(lobbyEntry.id);
+      setStep('waiting');
+      
+      // Set up real-time listener for approval status
+      const channel = supabase
+        .channel(`lobby-${lobbyEntry.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'lobby_queue',
+            filter: `id=eq.${lobbyEntry.id}`
+          },
+          (payload) => {
+            const status = payload.new.approval_status;
+            if (status === 'approved') {
+              setStep('approved');
+              setTimeout(() => {
+                navigate(`/meeting/${formData.meetingCode.toUpperCase()}`);
+                onClose();
+              }, 2000);
+            } else if (status === 'rejected') {
+              setStep('rejected');
+            }
+          }
+        )
+        .subscribe();
 
     } catch (error) {
       console.error('Error joining meeting:', error);
