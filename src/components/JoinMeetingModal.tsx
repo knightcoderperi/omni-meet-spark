@@ -69,8 +69,8 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
         throw joinError;
       }
 
-      // Cast the response to our interface
-      const joinCheck = joinCheckData as CanJoinMeetingResponse;
+      // Cast the response to our interface with proper type conversion
+      const joinCheck = joinCheckData as unknown as CanJoinMeetingResponse;
 
       if (!joinCheck.can_join) {
         toast({
