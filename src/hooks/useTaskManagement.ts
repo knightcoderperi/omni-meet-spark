@@ -33,7 +33,7 @@ export const useTaskManagement = () => {
       // In production, user would configure their own repo
       const owner = 'octocat'; // Demo repo
       const repo = 'Hello-World'; // Demo repo
-      const token = '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';
+      const token =import.meta.env.VITE_GITHUB_TOKEN;
 
       const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues`, {
         method: 'POST',
