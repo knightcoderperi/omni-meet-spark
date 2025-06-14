@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 
 export const useWebRTC = () => {
@@ -12,12 +11,24 @@ export const useWebRTC = () => {
   const peerConnections = useRef<Map<string, RTCPeerConnection>>(new Map());
   const screenStream = useRef<MediaStream | null>(null);
 
-  // Performance optimization: Use lower quality constraints for better performance
+  // Optimized constraints for better performance and reduced lag
   const getOptimizedConstraints = useCallback((audioOnly: boolean = false, tileSize: 'small' | 'medium' | 'large' = 'medium') => {
     const videoConstraints = {
-      small: { width: { ideal: 320, max: 640 }, height: { ideal: 240, max: 480 }, frameRate: { ideal: 15, max: 24 } },
-      medium: { width: { ideal: 640, max: 1280 }, height: { ideal: 480, max: 720 }, frameRate: { ideal: 24, max: 30 } },
-      large: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }
+      small: { 
+        width: { ideal: 320, max: 480 }, 
+        height: { ideal: 240, max: 360 }, 
+        frameRate: { ideal: 15, max: 20 }
+      },
+      medium: { 
+        width: { ideal: 640, max: 800 }, 
+        height: { ideal: 480, max: 600 }, 
+        frameRate: { ideal: 20, max: 25 }
+      },
+      large: { 
+        width: { ideal: 960, max: 1280 }, 
+        height: { ideal: 720, max: 720 }, 
+        frameRate: { ideal: 25, max: 30 }
+      }
     };
 
     return {
@@ -25,12 +36,15 @@ export const useWebRTC = () => {
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true,
-        sampleRate: 44100,
-        channelCount: 1 // Mono for better performance
+        sampleRate: 48000,
+        channelCount: 1,
+        latency: 0.01 // Reduce audio latency
       },
       video: audioOnly ? false : {
         ...videoConstraints[tileSize],
-        facingMode: 'user'
+        facingMode: 'user',
+        aspectRatio: 16/9,
+        resizeMode: 'crop-and-scale'
       }
     };
   }, []);
@@ -40,23 +54,30 @@ export const useWebRTC = () => {
       const constraints = getOptimizedConstraints(audioOnly, tileSize);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
-      // Performance optimization: Configure audio track for better performance
+      // Apply immediate optimizations to tracks
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = true;
-        // Apply audio constraints for better performance
+        // Optimize audio settings for low latency
         await audioTrack.applyConstraints({
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          latency: 0.01
         });
       }
       
-      // Performance optimization: Configure video track
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack && !audioOnly) {
-        // Apply video constraints based on tile size for performance
-        await videoTrack.applyConstraints(constraints.video as MediaTrackConstraints);
+        // Apply optimized video constraints for reduced lag
+        await videoTrack.applyConstraints({
+          ...constraints.video as MediaTrackConstraints,
+          advanced: [{ 
+            width: { min: 320, ideal: 640, max: 1280 },
+            height: { min: 240, ideal: 480, max: 720 },
+            frameRate: { min: 15, ideal: 25, max: 30 }
+          }]
+        });
       }
       
       setLocalStream(stream);
@@ -65,12 +86,14 @@ export const useWebRTC = () => {
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
         localVideoRef.current.muted = true;
-        // Performance optimization: Set playback quality
         localVideoRef.current.playsInline = true;
-        localVideoRef.current.preload = 'metadata';
+        localVideoRef.current.autoplay = true;
+        // Optimize video element for performance
+        localVideoRef.current.style.transform = 'translateZ(0)'; // Hardware acceleration
+        localVideoRef.current.style.willChange = 'transform'; // Optimize for animations
       }
 
-      console.log('WebRTC initialized successfully with optimized settings');
+      console.log('WebRTC initialized with optimized low-latency settings');
     } catch (error) {
       console.error('Error accessing media devices:', error);
       throw error;
@@ -81,55 +104,53 @@ export const useWebRTC = () => {
     const configuration = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' } // Additional STUN servers for better connectivity
+        { urls: 'stun:stun1.l.google.com:19302' }
       ],
-      iceCandidatePoolSize: 10, // Performance optimization
-      bundlePolicy: 'max-bundle' as RTCBundlePolicy, // Performance optimization
-      rtcpMuxPolicy: 'require' as RTCRtcpMuxPolicy // Performance optimization
+      iceCandidatePoolSize: 10,
+      bundlePolicy: 'max-bundle' as RTCBundlePolicy,
+      rtcpMuxPolicy: 'require' as RTCRtcpMuxPolicy
     };
 
     const pc = new RTCPeerConnection(configuration);
 
-    // Performance optimization: Configure peer connection
     if (localStream) {
       localStream.getTracks().forEach(track => {
         const sender = pc.addTrack(track, localStream);
         
-        // Performance optimization: Configure encoding parameters
+        // Optimize encoding for reduced lag
         if (track.kind === 'video') {
           const params = sender.getParameters();
           if (params.encodings && params.encodings.length > 0) {
-            params.encodings[0].maxBitrate = 1000000; // 1Mbps max for better performance
+            params.encodings[0].maxBitrate = 800000; // 800kbps for better balance
             params.encodings[0].scaleResolutionDownBy = 1;
+            params.encodings[0].maxFramerate = 25; // Cap at 25fps for stability
             sender.setParameters(params);
           }
         }
       });
     }
 
-    // Handle remote stream with performance optimizations
     pc.ontrack = (event) => {
       const [remoteStream] = event.streams;
       console.log('Received remote stream:', remoteStream.id);
       
-      // Performance optimization: Configure remote stream
+      // Optimize remote stream for performance
       remoteStream.getVideoTracks().forEach(track => {
-        track.contentHint = 'motion'; // Optimize for video calls
+        track.contentHint = 'motion';
+        track.applyConstraints({
+          frameRate: { max: 25 }
+        }).catch(console.warn);
       });
       
       setRemoteStreams(prev => new Map(prev.set(peerId, remoteStream)));
     };
 
-    // Handle ICE candidates with better error handling
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         console.log('ICE candidate:', event.candidate);
-        // Send ICE candidate to remote peer via signaling server
       }
     };
 
-    // Enhanced connection state monitoring
     pc.onconnectionstatechange = () => {
       console.log('Connection state:', pc.connectionState);
       if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
@@ -140,11 +161,6 @@ export const useWebRTC = () => {
           return newMap;
         });
       }
-    };
-
-    // Performance monitoring
-    pc.oniceconnectionstatechange = () => {
-      console.log('ICE connection state:', pc.iceConnectionState);
     };
 
     peerConnections.current.set(peerId, pc);
@@ -185,7 +201,7 @@ export const useWebRTC = () => {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          suppressLocalAudioPlayback: true // Performance optimization
+          suppressLocalAudioPlayback: true
         }
       };
 
@@ -193,7 +209,6 @@ export const useWebRTC = () => {
       screenStream.current = stream;
       setIsScreenSharing(true);
 
-      // Performance optimization: Replace video track efficiently
       const videoTrack = stream.getVideoTracks()[0];
       const promises: Promise<void>[] = [];
       
@@ -208,7 +223,6 @@ export const useWebRTC = () => {
 
       await Promise.all(promises);
 
-      // Handle screen share end
       videoTrack.onended = () => {
         stopScreenShare();
       };
@@ -226,7 +240,6 @@ export const useWebRTC = () => {
 
     setIsScreenSharing(false);
 
-    // Performance optimization: Restore camera video efficiently
     if (localStream && !isVideoOff) {
       const videoTrack = localStream.getVideoTracks()[0];
       const promises: Promise<void>[] = [];
@@ -247,7 +260,6 @@ export const useWebRTC = () => {
   const cleanupWebRTC = useCallback(() => {
     console.log('Cleaning up WebRTC resources...');
     
-    // Stop all tracks
     if (localStream) {
       localStream.getTracks().forEach(track => {
         track.stop();
@@ -259,14 +271,12 @@ export const useWebRTC = () => {
       screenStream.current.getTracks().forEach(track => track.stop());
     }
 
-    // Close all peer connections
     peerConnections.current.forEach((pc, peerId) => {
       console.log('Closing peer connection:', peerId);
       pc.close();
     });
     peerConnections.current.clear();
 
-    // Clear streams
     setLocalStream(null);
     setRemoteStreams(new Map());
     setIsScreenSharing(false);
@@ -274,7 +284,7 @@ export const useWebRTC = () => {
     setIsVideoOff(false);
   }, [localStream]);
 
-  // Performance optimization: Effect to ensure proper video element configuration
+  // Performance optimization effect
   useEffect(() => {
     if (localVideoRef.current && localStream) {
       const video = localVideoRef.current;
@@ -283,36 +293,13 @@ export const useWebRTC = () => {
       video.playsInline = true;
       video.autoplay = true;
       
-      // Performance optimization: Set video element properties
+      // Hardware acceleration and performance optimizations
       video.style.objectFit = 'cover';
+      video.style.transform = 'translateZ(0)';
+      video.style.willChange = 'transform';
       video.preload = 'metadata';
     }
   }, [localStream]);
-
-  // Performance monitoring effect
-  useEffect(() => {
-    const interval = setInterval(() => {
-      peerConnections.current.forEach(async (pc, peerId) => {
-        try {
-          const stats = await pc.getStats();
-          // Log connection quality metrics for debugging
-          stats.forEach(report => {
-            if (report.type === 'inbound-rtp' && report.mediaType === 'video') {
-              console.log(`Video quality for ${peerId}:`, {
-                bytesReceived: report.bytesReceived,
-                packetsLost: report.packetsLost,
-                jitter: report.jitter
-              });
-            }
-          });
-        } catch (error) {
-          console.warn('Error getting stats for peer:', peerId, error);
-        }
-      });
-    }, 10000); // Check every 10 seconds
-
-    return () => clearInterval(interval);
-  }, []);
 
   return {
     localStream,

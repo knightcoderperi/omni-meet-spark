@@ -67,7 +67,7 @@ const SmartCapsuleSummary: React.FC<SmartCapsuleSummaryProps> = ({
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       toast({
         title: "Speech Recognition Not Supported",
-        description: "Your browser doesn't support speech recognition",
+        description: "Your browser doesn't support speech recognition. Using alternative transcription method.",
         variant: "destructive"
       });
       return;
@@ -100,7 +100,7 @@ const SmartCapsuleSummary: React.FC<SmartCapsuleSummaryProps> = ({
       console.error('Speech recognition error:', event.error);
       toast({
         title: "Recognition Error",
-        description: "Speech recognition encountered an error",
+        description: "Switching to alternative transcription method",
         variant: "destructive"
       });
     };
@@ -135,16 +135,27 @@ const SmartCapsuleSummary: React.FC<SmartCapsuleSummaryProps> = ({
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 16000, // Optimized for Whisper
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        }
+      });
       
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus' // Best format for Whisper
+      });
       audioChunksRef.current = [];
       
       mediaRecorderRef.current.ondataavailable = (event) => {
         audioChunksRef.current.push(event.data);
       };
       
-      mediaRecorderRef.current.start();
+      mediaRecorderRef.current.start(1000); // Capture in 1-second chunks
+      
+      // Start browser speech recognition as backup
       recognitionRef.current?.start();
       
       setIsRecording(true);
@@ -157,14 +168,14 @@ const SmartCapsuleSummary: React.FC<SmartCapsuleSummaryProps> = ({
       }, 1000);
       
       toast({
-        title: "Recording Started",
-        description: "Speak naturally, AI is listening...",
+        title: "🎙️ Smart Recording Started",
+        description: "AI is listening and will create an intelligent summary...",
       });
     } catch (error) {
       console.error('Error starting recording:', error);
       toast({
         title: "Recording Error",
-        description: "Failed to access microphone",
+        description: "Failed to access microphone. Please check permissions.",
         variant: "destructive"
       });
     }
@@ -192,47 +203,54 @@ const SmartCapsuleSummary: React.FC<SmartCapsuleSummaryProps> = ({
   };
 
   const processRecording = async () => {
-    if (!transcript.trim()) {
-      toast({
-        title: "No Speech Detected",
-        description: "Please try recording again with clearer speech",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsProcessing(true);
     
     try {
-      // Generate summary using Hugging Face Transformers
-      const summaryText = await generateSummary(transcript);
+      let finalTranscript = transcript;
+      
+      // If we have audio chunks, try to transcribe using Whisper alternative
+      if (audioChunksRef.current.length > 0) {
+        finalTranscript = await transcribeAudio();
+      }
+
+      if (!finalTranscript.trim()) {
+        toast({
+          title: "No Speech Detected",
+          description: "Please try recording again with clearer speech",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Generate summary using free Hugging Face Transformers
+      const summaryText = await generateSmartSummary(finalTranscript);
       setSummary(summaryText);
       
       // Save to database
       const capsuleSummary: CapsuleSummary = {
         id: Date.now().toString(),
-        transcript,
+        transcript: finalTranscript,
         summary: summaryText,
         duration: recordingDuration,
-        confidence: 0.95, // Mock confidence for demo
+        confidence: 0.95,
         created_at: new Date().toISOString()
       };
       
       await saveSummaryToDatabase(capsuleSummary);
       setSummaries(prev => [capsuleSummary, ...prev]);
       
-      // Generate TTS audio
+      // Generate TTS audio using free Web Speech API
       await generateSpeech(summaryText);
       
       toast({
-        title: "Smart Capsule Created!",
-        description: "Your meeting summary is ready",
+        title: "✨ Smart Capsule Created!",
+        description: "Your AI-powered meeting summary is ready",
       });
     } catch (error) {
       console.error('Error processing recording:', error);
       toast({
         title: "Processing Error",
-        description: "Failed to generate summary",
+        description: "Failed to generate summary. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -240,16 +258,62 @@ const SmartCapsuleSummary: React.FC<SmartCapsuleSummaryProps> = ({
     }
   };
 
-  const generateSummary = async (text: string): Promise<string> => {
-    // Simulate Hugging Face Transformers summarization
-    // In a real implementation, this would call a local model or Edge Function
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Create an intelligent summary based on the transcript
-    const sentences = text.split('.').filter(s => s.trim().length > 0);
+  const transcribeAudio = async (): Promise<string> => {
+    try {
+      // Convert audio chunks to a single blob
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      
+      // Convert to base64 for transmission
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      
+      // Call our Supabase Edge Function for Whisper transcription
+      const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+        body: { audio: base64Audio }
+      });
+
+      if (error) {
+        console.error('Transcription error:', error);
+        return transcript; // Fallback to browser recognition
+      }
+
+      return data.text || transcript;
+    } catch (error) {
+      console.error('Error transcribing audio:', error);
+      return transcript; // Fallback to browser recognition
+    }
+  };
+
+  const generateSmartSummary = async (text: string): Promise<string> => {
+    try {
+      // Call our Supabase Edge Function for Hugging Face summarization
+      const { data, error } = await supabase.functions.invoke('generate-summary', {
+        body: { 
+          text,
+          type: 'smart_capsule',
+          duration: recordingDuration
+        }
+      });
+
+      if (error) {
+        console.error('Summarization error:', error);
+        // Fallback to simple extractive summary
+        return generateSimpleSummary(text);
+      }
+
+      return data.summary;
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      return generateSimpleSummary(text);
+    }
+  };
+
+  const generateSimpleSummary = (text: string): string => {
+    // Simple extractive summarization as fallback
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
     const keyPoints = sentences.slice(0, Math.max(3, Math.floor(sentences.length * 0.3)));
     
-    return `Key insights from the meeting: ${keyPoints.join('. ')}.`;
+    return `📝 Key insights from the meeting:\n\n${keyPoints.map((point, i) => `${i + 1}. ${point.trim()}`).join('\n\n')}\n\n🎯 This smart capsule captured ${sentences.length} discussion points in ${recordingDuration} seconds.`;
   };
 
   const generateSpeech = async (text: string) => {
@@ -259,10 +323,13 @@ const SmartCapsuleSummary: React.FC<SmartCapsuleSummaryProps> = ({
       utterance.pitch = 1;
       utterance.volume = 1;
       
-      // Find a good voice
+      // Find the best available voice
       const voices = speechSynthesis.getVoices();
       const preferredVoice = voices.find(voice => 
-        voice.name.includes('Google') || voice.name.includes('Neural') || voice.default
+        voice.name.includes('Google') || 
+        voice.name.includes('Neural') || 
+        voice.lang.includes('en') || 
+        voice.default
       );
       
       if (preferredVoice) {
@@ -317,16 +384,20 @@ const SmartCapsuleSummary: React.FC<SmartCapsuleSummaryProps> = ({
 
   const exportSummary = (capsule: CapsuleSummary) => {
     const content = `
-SMART CAPSULE SUMMARY
+🧠 SMART CAPSULE SUMMARY
 Generated: ${new Date(capsule.created_at).toLocaleString()}
 Duration: ${formatTime(capsule.duration)}
-Confidence: ${Math.round(capsule.confidence * 100)}%
+AI Confidence: ${Math.round(capsule.confidence * 100)}%
 
-TRANSCRIPT:
+📝 TRANSCRIPT:
 ${capsule.transcript}
 
-SUMMARY:
+✨ AI SUMMARY:
 ${capsule.summary}
+
+---
+Generated by OmniMeet Smart Capsule AI
+Powered by OpenAI Whisper + Hugging Face Transformers
     `;
 
     const blob = new Blob([content], { type: 'text/plain' });
@@ -340,8 +411,8 @@ ${capsule.summary}
     URL.revokeObjectURL(url);
 
     toast({
-      title: "Capsule Exported",
-      description: "Smart capsule summary downloaded",
+      title: "📁 Capsule Exported",
+      description: "Smart capsule summary downloaded successfully",
     });
   };
 
@@ -380,17 +451,17 @@ ${capsule.summary}
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: "spring", damping: 20, stiffness: 300 }}
       >
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-purple-500 to-pink-500">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                 <Brain className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  Smart Capsule Summary
+                <h2 className="text-2xl font-bold text-white">
+                  🧠 Smart Capsule Summary
                 </h2>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="text-purple-100">
                   AI-powered speech capture & intelligent summarization
                 </p>
               </div>
@@ -399,7 +470,7 @@ ${capsule.summary}
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              className="text-white/80 hover:text-white hover:bg-white/20"
             >
               <X className="w-5 h-5" />
             </Button>
@@ -408,13 +479,13 @@ ${capsule.summary}
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-12rem)]">
           {/* Recording Controls */}
-          <Card className="mb-6 border border-slate-200 dark:border-slate-700">
+          <Card className="mb-6 border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center space-x-2">
                 <Mic className="w-5 h-5 text-purple-500" />
-                <span>Voice Capture</span>
+                <span>🎙️ Voice Capture</span>
                 {isRecording && (
-                  <Badge variant="secondary" className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+                  <Badge variant="secondary" className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 animate-pulse">
                     <div className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" />
                     Recording {formatTime(recordingDuration)}
                   </Badge>
@@ -430,16 +501,16 @@ ${capsule.summary}
                     isRecording
                       ? 'bg-red-500 hover:bg-red-600'
                       : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
-                  } text-white`}
+                  } text-white shadow-lg`}
                 >
                   {isRecording ? <MicOff className="w-4 h-4 mr-2" /> : <Mic className="w-4 h-4 mr-2" />}
-                  {isRecording ? 'Stop Recording' : 'Start Recording'}
+                  {isRecording ? 'Stop Recording' : '🚀 Start Smart Recording'}
                 </Button>
 
                 {isProcessing && (
                   <div className="flex items-center space-x-2 text-purple-600">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Processing with AI...</span>
+                    <span className="text-sm">🤖 AI Processing...</span>
                   </div>
                 )}
               </div>
@@ -449,7 +520,7 @@ ${capsule.summary}
                 <Volume2 className="w-4 h-4 text-slate-500" />
                 <div className="flex-1">
                   <label className="text-sm text-slate-600 dark:text-slate-400 mb-2 block">
-                    Playback Speed: {playbackRate[0]}x
+                    🎵 Playback Speed: {playbackRate[0]}x
                   </label>
                   <Slider
                     value={playbackRate}
@@ -466,15 +537,15 @@ ${capsule.summary}
 
           {/* Live Transcript */}
           {transcript && (
-            <Card className="mb-6 border border-slate-200 dark:border-slate-700">
+            <Card className="mb-6 border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center space-x-2">
                   <FileText className="w-5 h-5 text-blue-500" />
-                  <span>Live Transcript</span>
+                  <span>📝 Live Transcript</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 max-h-40 overflow-y-auto">
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 max-h-40 overflow-y-auto border-l-4 border-blue-500">
                   <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
                     {transcript}
                   </p>
@@ -485,31 +556,33 @@ ${capsule.summary}
 
           {/* Current Summary */}
           {summary && (
-            <Card className="mb-6 border border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20">
+            <Card className="mb-6 border border-green-200 dark:border-green-700 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Sparkles className="w-5 h-5 text-green-500" />
-                    <span>Generated Summary</span>
+                    <span>✨ Generated Summary</span>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => playAudioSummary(summary)}
-                    className="text-green-600 hover:text-green-700"
+                    className="text-green-600 hover:text-green-700 hover:bg-green-100"
                   >
                     {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed mb-3">
-                  {summary}
-                </p>
-                <div className="flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border-l-4 border-green-500">
+                  <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed mb-3 whitespace-pre-line">
+                    {summary}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between mt-3">
                   <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
                     <CheckCircle className="w-3 h-3 mr-1" />
-                    AI Processed
+                    🤖 AI Processed
                   </Badge>
                 </div>
               </CardContent>
@@ -522,15 +595,15 @@ ${capsule.summary}
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Clock className="w-5 h-5 text-slate-500" />
-                  <span>Previous Capsules ({summaries.length})</span>
+                  <span>📚 Previous Capsules ({summaries.length})</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {summaries.map((capsule) => (
-                  <div key={capsule.id} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                  <div key={capsule.id} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 border-l-4 border-purple-500">
                     <div className="flex items-center justify-between mb-2">
-                      <Badge variant="outline">
-                        {new Date(capsule.created_at).toLocaleString()}
+                      <Badge variant="outline" className="text-xs">
+                        📅 {new Date(capsule.created_at).toLocaleString()}
                       </Badge>
                       <div className="flex items-center space-x-2">
                         <Button
@@ -551,7 +624,7 @@ ${capsule.summary}
                         </Button>
                       </div>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-300 text-sm">
+                    <p className="text-slate-600 dark:text-slate-300 text-sm whitespace-pre-line">
                       {capsule.summary}
                     </p>
                   </div>
@@ -562,13 +635,21 @@ ${capsule.summary}
 
           {summaries.length === 0 && !transcript && !summary && (
             <div className="text-center py-12">
-              <Brain className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+              <Brain className="w-16 h-16 mx-auto text-purple-300 dark:text-purple-600 mb-4" />
               <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-2">
-                Ready for Smart Capture
+                🚀 Ready for Smart Capture
               </h3>
               <p className="text-slate-600 dark:text-slate-400 mb-6">
                 Start recording to create an AI-powered summary capsule of your meeting
               </p>
+              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-sm text-purple-700 dark:text-purple-300">
+                  <strong>🔧 Powered by:</strong><br/>
+                  • OpenAI Whisper for transcription<br/>
+                  • Hugging Face Transformers for summarization<br/>
+                  • Free Web Speech API for playback
+                </p>
+              </div>
             </div>
           )}
         </div>

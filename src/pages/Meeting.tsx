@@ -153,7 +153,9 @@ const Meeting = () => {
 
   const handleJoinMeeting = async (userName: string, audioOnly: boolean) => {
     try {
-      await initializeWebRTC(audioOnly);
+      // Use optimized tile size based on layout settings
+      const tileSize = settings.compactMode ? 'small' : settings.gridSize;
+      await initializeWebRTC(audioOnly, tileSize);
       setHasJoined(true);
       
       const newParticipant: Participant = {
@@ -416,7 +418,7 @@ const Meeting = () => {
 
       {/* Main Meeting Interface */}
       <div className="absolute inset-0 flex flex-col">
-        {/* Premium Header Bar */}
+        {/* Premium Header Bar with Smart Capsule Button */}
         <motion.header 
           className="bg-white/80 dark:bg-black/20 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/10 p-2 md:p-4 z-20"
           initial={{ y: -50, opacity: 0 }}
@@ -485,6 +487,17 @@ const Meeting = () => {
             </div>
             
             <div className="flex items-center space-x-1 md:space-x-3">
+              {/* Smart Capsule Summary Button */}
+              <Button 
+                variant="ghost" 
+                size={isMobile ? "sm" : "default"}
+                className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-800 border border-transparent hover:border-purple-500/30"
+                onClick={() => setShowSmartCapsule(true)}
+              >
+                <Brain className="w-4 h-4 mr-1" />
+                {!isMobile && "Smart Capsule"}
+              </Button>
+
               {/* Layout Customization Button */}
               <Button 
                 variant="ghost" 
@@ -518,7 +531,6 @@ const Meeting = () => {
                     <Share2 className="w-4 h-4 mr-2" />
                     Share
                   </Button>
-                  
                   
                 </>
               )}
