@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import MeetingAudioProcessor from '@/services/meetingAudioProcessor';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TranslationChatWidgetProps {
   meetingId: string;
@@ -73,6 +75,7 @@ const TranslationChatWidget: React.FC<TranslationChatWidgetProps> = ({
   const [selectedLanguage, setSelectedLanguage] = useState('es');
   const [isMinimized, setIsMinimized] = useState(false);
   const [isRealTimeEnabled, setIsRealTimeEnabled] = useState(false);
+  const [audioProcessor] = useState(() => new MeetingAudioProcessor());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -89,10 +92,59 @@ const TranslationChatWidget: React.FC<TranslationChatWidgetProps> = ({
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
-  }, []);
+
+    // Start audio processing when component mounts
+    audioProcessor.startMeetingRecording();
+
+    return () => {
+      audioProcessor.cleanup();
+    };
+  }, [audioProcessor]);
+
+  useEffect(() => {
+    // Handle real-time translation
+    if (isRealTimeEnabled) {
+      audioProcessor.startRealTimeCapture(async (audioBlob) => {
+        try {
+          const transcript = await audioProcessor.transcribeAudio(audioBlob);
+          if (transcript && transcript.trim() && !transcript.includes('No speech detected')) {
+            await translateRealTimeContent(transcript);
+          }
+        } catch (error) {
+          console.error('Real-time translation error:', error);
+        }
+      });
+    }
+  }, [isRealTimeEnabled, selectedLanguage]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const translateRealTimeContent = async (transcript: string) => {
+    try {
+      const response = await supabase.functions.invoke('groq-translation', {
+        body: {
+          text: transcript,
+          targetLanguage: selectedLanguage,
+          timeframe: 'real-time segment',
+          requestType: 'realtime'
+        }
+      });
+
+      if (response.data?.translatedText) {
+        const aiMessage: ChatMessage = {
+          id: Date.now().toString(),
+          type: 'ai',
+          content: `🔴 **Live Translation:** ${response.data.translatedText}`,
+          timestamp: new Date(),
+          language: selectedLanguage
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      }
+    } catch (error) {
+      console.error('Real-time translation error:', error);
+    }
   };
 
   const handleSendMessage = async (message: string) => {
@@ -138,6 +190,62 @@ const TranslationChatWidget: React.FC<TranslationChatWidgetProps> = ({
   const handlePresetClick = async (preset: typeof PRESET_BUTTONS[0]) => {
     const message = `${preset.prompt} to ${LANGUAGES.find(l => l.code === selectedLanguage)?.name}`;
     await handleSendMessage(message);
+  };
+
+  const processTranslationRequest = async (
+    message: string, 
+    targetLanguage: string, 
+    meetingId: string
+  ): Promise<string> => {
+    try {
+      const timeRegex = /last (\d+) minutes?/i;
+      const entireRegex = /entire meeting|whole meeting|full meeting/i;
+      
+      let audioContent = '';
+      let timeframe = 'meeting segment';
+
+      if (timeRegex.test(message)) {
+        const minutes = parseInt(message.match(timeRegex)![1]);
+        const { fullTranscript } = await audioProcessor.getTranscribedTimeframe(minutes);
+        audioContent = fullTranscript;
+        timeframe = `last ${minutes} minutes`;
+      } else if (entireRegex.test(message)) {
+        const entireMeeting = audioProcessor.getEntireMeetingAudio();
+        const transcriptionPromises = entireMeeting.chunks.map(chunk => 
+          audioProcessor.transcribeAudio(chunk.audio)
+        );
+        const transcripts = await Promise.all(transcriptionPromises);
+        audioContent = transcripts.join('\n\n');
+        timeframe = 'entire meeting';
+      } else {
+        // For custom queries, use last 5 minutes as default
+        const { fullTranscript } = await audioProcessor.getTranscribedTimeframe(5);
+        audioContent = fullTranscript;
+        timeframe = 'recent discussion';
+      }
+
+      if (!audioContent || audioContent.trim() === '' || audioContent.includes('No speech detected')) {
+        return `I couldn't find any spoken content for the ${timeframe}. Please make sure the meeting is active and people are speaking.`;
+      }
+
+      const response = await supabase.functions.invoke('groq-translation', {
+        body: {
+          text: audioContent,
+          targetLanguage: targetLanguage,
+          timeframe: timeframe,
+          requestType: timeRegex.test(message) ? 'timeframe' : entireRegex.test(message) ? 'entire_meeting' : 'custom_query'
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Translation failed');
+      }
+
+      return response.data?.translatedText || 'Translation completed but no content returned.';
+    } catch (error) {
+      console.error('Translation processing error:', error);
+      throw error;
+    }
   };
 
   const handleCopyMessage = (content: string) => {
@@ -379,32 +487,5 @@ const TypingIndicator: React.FC = () => (
     </div>
   </div>
 );
-
-const processTranslationRequest = async (
-  message: string, 
-  targetLanguage: string, 
-  meetingId: string
-): Promise<string> => {
-  // Simulate translation processing
-  // In a real implementation, this would:
-  // 1. Parse the user request
-  // 2. Extract relevant audio/transcript
-  // 3. Call Groq API for translation
-  // 4. Return the translated content
-  
-  const timeRegex = /last (\d+) minutes?/i;
-  const entireRegex = /entire meeting|whole meeting|full meeting/i;
-  
-  if (timeRegex.test(message)) {
-    const minutes = parseInt(message.match(timeRegex)![1]);
-    return `Here's the translation of the last ${minutes} minutes of the meeting in ${LANGUAGES.find(l => l.code === targetLanguage)?.name}:\n\n[Simulated translation content for the last ${minutes} minutes would appear here. This would be the actual translated meeting content from the Groq API.]`;
-  }
-  
-  if (entireRegex.test(message)) {
-    return `Here's the complete translation of the entire meeting in ${LANGUAGES.find(l => l.code === targetLanguage)?.name}:\n\n[Simulated full meeting translation would appear here. This would be the complete translated meeting content from the Groq API.]`;
-  }
-  
-  return `I can help you translate meeting content! Here are some things you can ask:\n• "Translate the last 5 minutes to Spanish"\n• "What was discussed about the project in French?"\n• "Translate the entire meeting to Hindi"\n\nWhat would you like me to translate?`;
-};
 
 export default TranslationChatWidget;
