@@ -2,14 +2,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Brain, Mic, MessageSquare, Send, Loader2, Clock, TrendingUp, 
-  Users, Target, ChevronDown, ChevronRight, Zap, History
+  Brain, Languages, MessageSquare, Send, Loader2, Clock, TrendingUp, 
+  Users, Target, ChevronDown, ChevronRight, Zap, History, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAIFeatures } from '@/hooks/useAIFeatures';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import MeetingAudioProcessor from '@/services/meetingAudioProcessor';
 
 interface AIAssistantPanelProps {
   meetingId: string;
@@ -18,25 +22,46 @@ interface AIAssistantPanelProps {
   userJoinTime?: number;
 }
 
+const LANGUAGES = [
+  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'fr', name: 'French', flag: '🇫🇷' },
+  { code: 'de', name: 'German', flag: '🇩🇪' },
+  { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
+  { code: 'ta', name: 'Tamil', flag: '🇮🇳' },
+  { code: 'zh', name: 'Chinese', flag: '🇨🇳' },
+  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+  { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
+  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
+  { code: 'ru', name: 'Russian', flag: '🇷🇺' }
+];
+
 const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
   meetingId,
   isVisible,
   onClose,
   userJoinTime = 0
 }) => {
-  const [activeTab, setActiveTab] = useState<'catchup' | 'transcription' | 'insights'>('catchup');
+  const [activeTab, setActiveTab] = useState<'catchup' | 'translate' | 'insights'>('catchup');
   const [message, setMessage] = useState('');
-  const [isTranscriptionOpen, setIsTranscriptionOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('es');
   const [isInsightsOpen, setIsInsightsOpen] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translations, setTranslations] = useState<Array<{
+    id: string;
+    content: string;
+    timestamp: Date;
+    language: string;
+    timeframe: string;
+  }>>([]);
+  const [audioProcessor] = useState(() => new MeetingAudioProcessor());
+  const { toast } = useToast();
   
   const {
     conversations,
     insights,
-    transcriptions,
     isLoading,
     fetchConversations,
     fetchInsights,
-    fetchTranscriptions,
     sendAIMessage,
     generateCatchUp,
     getInsights
@@ -46,9 +71,14 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
     if (isVisible) {
       fetchConversations();
       fetchInsights();
-      fetchTranscriptions();
+      // Start audio processing for translations
+      audioProcessor.startMeetingRecording();
     }
-  }, [isVisible, fetchConversations, fetchInsights, fetchTranscriptions]);
+
+    return () => {
+      audioProcessor.cleanup();
+    };
+  }, [isVisible, fetchConversations, fetchInsights, audioProcessor]);
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
@@ -61,9 +91,79 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
     await generateCatchUp(userJoinTime);
   };
 
+  const handleTranslateTimeframe = async (timeframe: string) => {
+    if (isTranslating) return;
+    
+    setIsTranslating(true);
+    try {
+      let audioContent = '';
+      let minutes = 0;
+      
+      if (timeframe.includes('minutes')) {
+        const match = timeframe.match(/(\d+)/);
+        minutes = match ? parseInt(match[1]) : 2;
+        const { fullTranscript } = await audioProcessor.getTranscribedTimeframe(minutes);
+        audioContent = fullTranscript;
+      } else if (timeframe === 'entire') {
+        const entireMeeting = audioProcessor.getEntireMeetingAudio();
+        const transcriptionPromises = entireMeeting.chunks.map(chunk => 
+          audioProcessor.transcribeAudio(chunk.audio)
+        );
+        const transcripts = await Promise.all(transcriptionPromises);
+        audioContent = transcripts.join('\n\n');
+      }
+
+      if (!audioContent || audioContent.trim() === '' || audioContent.includes('No speech detected')) {
+        toast({
+          title: "No Content Found",
+          description: `No spoken content found for the ${timeframe}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const response = await supabase.functions.invoke('groq-translation', {
+        body: {
+          text: audioContent,
+          targetLanguage: selectedLanguage,
+          timeframe: timeframe,
+          requestType: 'timeframe'
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Translation failed');
+      }
+
+      const newTranslation = {
+        id: Date.now().toString(),
+        content: response.data?.translatedText || 'Translation completed but no content returned.',
+        timestamp: new Date(),
+        language: selectedLanguage,
+        timeframe: timeframe
+      };
+
+      setTranslations(prev => [...prev, newTranslation]);
+      
+      toast({
+        title: "Translation Complete",
+        description: `Translated ${timeframe} to ${LANGUAGES.find(l => l.code === selectedLanguage)?.name}`,
+      });
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast({
+        title: "Translation Failed",
+        description: error instanceof Error ? error.message : "Failed to translate content",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const tabs = [
     { id: 'catchup', label: 'Catch Me Up', icon: Zap },
-    { id: 'transcription', label: 'Transcription', icon: Mic },
+    { id: 'translate', label: 'Translate', icon: Languages },
     { id: 'insights', label: 'Insights', icon: Brain }
   ];
 
@@ -201,55 +301,117 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
               </div>
             )}
 
-            {activeTab === 'transcription' && (
-              <div className="p-4 space-y-4 h-full overflow-y-auto">
-                <Collapsible open={isTranscriptionOpen} onOpenChange={setIsTranscriptionOpen}>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Mic className="w-4 h-4" />
-                        <span>Real-time Transcription</span>
-                        <Badge variant="secondary">{transcriptions.length}</Badge>
-                      </div>
-                      {isTranscriptionOpen ? (
-                        <ChevronDown className="w-4 h-4" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-3 mt-3">
-                    {transcriptions.map((transcript) => (
-                      <Card key={transcript.id} className="bg-slate-50 dark:bg-slate-800">
-                        <CardContent className="p-3">
-                          <div className="flex items-start space-x-3">
-                            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                              <Mic className="w-3 h-3 text-white" />
+            {activeTab === 'translate' && (
+              <div className="h-full flex flex-col">
+                <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Translate to:
+                      </label>
+                      <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LANGUAGES.map(lang => (
+                            <SelectItem key={lang.code} value={lang.code}>
+                              {lang.flag} {lang.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => handleTranslateTimeframe('last 2 minutes')}
+                        disabled={isTranslating}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        Last 2 min
+                      </Button>
+                      <Button
+                        onClick={() => handleTranslateTimeframe('last 5 minutes')}
+                        disabled={isTranslating}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        Last 5 min
+                      </Button>
+                      <Button
+                        onClick={() => handleTranslateTimeframe('last 10 minutes')}
+                        disabled={isTranslating}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        Last 10 min
+                      </Button>
+                      <Button
+                        onClick={() => handleTranslateTimeframe('entire')}
+                        disabled={isTranslating}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        Entire meeting
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {translations.map((translation) => (
+                    <Card key={translation.id} className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-700">
+                      <CardContent className="p-4">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                            <Languages className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Globe className="w-4 h-4 text-blue-600" />
+                              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                {LANGUAGES.find(l => l.code === translation.language)?.flag} {LANGUAGES.find(l => l.code === translation.language)?.name}
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                {translation.timeframe}
+                              </Badge>
                             </div>
-                            <div className="flex-1">
-                              <p className="text-sm text-slate-800 dark:text-white">
-                                {transcript.transcript_text}
-                              </p>
-                              <div className="flex items-center justify-between mt-2">
-                                <p className="text-xs text-slate-500">
-                                  {Math.floor(transcript.start_time)}s - {Math.floor(transcript.end_time)}s
-                                </p>
-                                <Badge variant="outline" className="text-xs">
-                                  {Math.round(transcript.confidence_score * 100)}% confidence
-                                </Badge>
+                            <div className="bg-white dark:bg-slate-700 rounded-lg p-3">
+                              <div className="text-sm text-slate-800 dark:text-white whitespace-pre-wrap">
+                                {translation.content}
                               </div>
                             </div>
+                            <p className="text-xs text-slate-400 mt-2">
+                              {translation.timestamp.toLocaleTimeString()}
+                            </p>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {transcriptions.length === 0 && (
-                      <p className="text-sm text-slate-500 text-center py-4">
-                        No transcriptions available yet
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {translations.length === 0 && (
+                    <div className="text-center py-8">
+                      <Languages className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+                      <p className="text-slate-500 dark:text-slate-400 text-sm">
+                        Select a timeframe above to translate meeting content
                       </p>
-                    )}
-                  </CollapsibleContent>
-                </Collapsible>
+                    </div>
+                  )}
+                  
+                  {isTranslating && (
+                    <div className="text-center py-4">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
+                      <p className="text-sm text-slate-500">Translating meeting content...</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

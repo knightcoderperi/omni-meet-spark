@@ -1,301 +1,181 @@
 
 interface AudioChunk {
   audio: Blob;
-  duration: number;
   timestamp: number;
-  transcript?: string;
+  duration: number;
 }
 
-interface AudioTimeframe {
-  start: number;
-  end: number;
-  chunks: AudioChunk[];
+interface TranscribedSegment {
+  text: string;
+  timestamp: number;
+  duration: number;
 }
 
-export class MeetingAudioProcessor {
-  private audioBuffer = new Map<number, AudioChunk>();
-  private isRecording = false;
+class MeetingAudioProcessor {
   private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
-  private chunkInterval: number | null = null;
-  private readonly CHUNK_DURATION = 30000; // 30 seconds
-  private readonly MAX_BUFFER_TIME = 1800000; // 30 minutes
+  private audioChunks: AudioChunk[] = [];
+  private transcribedSegments: TranscribedSegment[] = [];
+  private stream: MediaStream | null = null;
+  private isRecording = false;
+  private recordingStartTime = 0;
 
-  constructor() {
-    this.initializeAudioRecording();
-  }
-
-  private async initializeAudioRecording() {
+  async startMeetingRecording(): Promise<void> {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      // Get audio from microphone
+      this.stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          sampleRate: 44100
+          autoGainControl: true
         } 
       });
-      
-      this.mediaRecorder = new MediaRecorder(stream, {
+
+      this.mediaRecorder = new MediaRecorder(this.stream, {
         mimeType: 'audio/webm;codecs=opus'
       });
-      
+
+      this.recordingStartTime = Date.now();
+      this.isRecording = true;
+
+      let tempChunks: Blob[] = [];
+
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          this.audioChunks.push(event.data);
+          tempChunks.push(event.data);
         }
       };
 
       this.mediaRecorder.onstop = () => {
-        this.saveCurrentChunk();
+        if (tempChunks.length > 0) {
+          const audioBlob = new Blob(tempChunks, { type: 'audio/webm' });
+          const chunk: AudioChunk = {
+            audio: audioBlob,
+            timestamp: Date.now() - this.recordingStartTime,
+            duration: 5000 // 5 second chunks
+          };
+          this.audioChunks.push(chunk);
+          tempChunks = [];
+        }
       };
+
+      // Record in 5-second chunks
+      this.mediaRecorder.start();
+      
+      // Create recurring chunks every 5 seconds
+      setInterval(() => {
+        if (this.isRecording && this.mediaRecorder?.state === 'recording') {
+          this.mediaRecorder.stop();
+          setTimeout(() => {
+            if (this.isRecording && this.mediaRecorder) {
+              this.mediaRecorder.start();
+            }
+          }, 100);
+        }
+      }, 5000);
+
+      console.log('Meeting audio recording started');
     } catch (error) {
-      console.error('Failed to initialize audio recording:', error);
+      console.error('Failed to start meeting recording:', error);
+      throw error;
     }
   }
 
-  startMeetingRecording(): void {
-    if (!this.mediaRecorder || this.isRecording) return;
-    
-    this.isRecording = true;
-    this.mediaRecorder.start();
-    
-    // Create chunks every 30 seconds
-    this.chunkInterval = window.setInterval(() => {
-      if (this.isRecording && this.mediaRecorder) {
-        this.mediaRecorder.stop();
-        setTimeout(() => {
-          if (this.isRecording && this.mediaRecorder) {
-            this.mediaRecorder.start();
-          }
-        }, 100);
-      }
-    }, this.CHUNK_DURATION);
-  }
+  async getTranscribedTimeframe(minutes: number): Promise<{ fullTranscript: string }> {
+    const targetDuration = minutes * 60 * 1000; // Convert to milliseconds
+    const currentTime = Date.now() - this.recordingStartTime;
+    const startTime = Math.max(0, currentTime - targetDuration);
 
-  stopMeetingRecording(): void {
-    this.isRecording = false;
-    
-    if (this.chunkInterval) {
-      clearInterval(this.chunkInterval);
-      this.chunkInterval = null;
+    // Get audio chunks from the specified timeframe
+    const relevantChunks = this.audioChunks.filter(chunk => 
+      chunk.timestamp >= startTime && chunk.timestamp <= currentTime
+    );
+
+    if (relevantChunks.length === 0) {
+      return { fullTranscript: 'No audio available for the specified timeframe.' };
     }
-    
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      this.mediaRecorder.stop();
-    }
-  }
 
-  private saveCurrentChunk(): void {
-    if (this.audioChunks.length === 0) return;
+    // Transcribe each chunk and combine
+    const transcripts: string[] = [];
     
-    const timestamp = Date.now();
-    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-    
-    const chunk: AudioChunk = {
-      audio: audioBlob,
-      duration: this.CHUNK_DURATION,
-      timestamp
-    };
-    
-    this.audioBuffer.set(timestamp, chunk);
-    this.audioChunks = [];
-    
-    // Clean old chunks to prevent memory issues
-    this.cleanOldAudioChunks();
-  }
-
-  private cleanOldAudioChunks(): void {
-    const currentTime = Date.now();
-    const cutoffTime = currentTime - this.MAX_BUFFER_TIME;
-    
-    for (const [timestamp] of this.audioBuffer) {
-      if (timestamp < cutoffTime) {
-        this.audioBuffer.delete(timestamp);
+    for (const chunk of relevantChunks) {
+      try {
+        const transcript = await this.transcribeAudio(chunk.audio);
+        if (transcript && transcript.trim() && !transcript.includes('No speech detected')) {
+          transcripts.push(transcript);
+        }
+      } catch (error) {
+        console.error('Error transcribing chunk:', error);
       }
     }
-  }
 
-  getAudioForTimeframe(minutes: number): AudioTimeframe {
-    const currentTime = Date.now();
-    const targetTime = currentTime - (minutes * 60 * 1000);
-    
-    const relevantChunks = Array.from(this.audioBuffer.entries())
-      .filter(([timestamp]) => timestamp >= targetTime)
-      .map(([_, chunk]) => chunk)
-      .sort((a, b) => a.timestamp - b.timestamp);
-    
-    return {
-      start: targetTime,
-      end: currentTime,
-      chunks: relevantChunks
+    const fullTranscript = transcripts.join(' ').trim();
+    return { 
+      fullTranscript: fullTranscript || 'No speech detected in the specified timeframe.' 
     };
   }
 
-  getEntireMeetingAudio(): AudioTimeframe {
-    const allChunks = Array.from(this.audioBuffer.values())
-      .sort((a, b) => a.timestamp - b.timestamp);
-    
-    if (allChunks.length === 0) {
-      return {
-        start: Date.now(),
-        end: Date.now(),
-        chunks: []
-      };
-    }
-    
-    return {
-      start: allChunks[0].timestamp,
-      end: allChunks[allChunks.length - 1].timestamp,
-      chunks: allChunks
-    };
-  }
-
-  async getLastFewSeconds(seconds: number): Promise<Blob | null> {
-    // For real-time translation, get the most recent audio
-    const recentChunks = Array.from(this.audioBuffer.values())
-      .filter(chunk => (Date.now() - chunk.timestamp) < (seconds * 1000))
-      .sort((a, b) => b.timestamp - a.timestamp);
-    
-    if (recentChunks.length === 0) return null;
-    
-    const audioBlobs = recentChunks.map(chunk => chunk.audio);
-    return new Blob(audioBlobs, { type: 'audio/webm' });
-  }
-
-  async mergeAudioChunks(chunks: Blob[]): Promise<Blob> {
-    return new Blob(chunks, { type: 'audio/webm' });
-  }
-
-  // Convert audio to text using Web Speech API or external service
   async transcribeAudio(audioBlob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      // This is a simplified implementation
-      // In production, you'd use a proper transcription service
-      
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        resolve('[Audio transcription not available - would use external service like Whisper API]');
-        return;
+    try {
+      // Convert blob to base64
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const base64Audio = btoa(String.fromCharCode(...uint8Array));
+
+      // Call Supabase edge function for transcription
+      const { data, error } = await import('@/integrations/supabase/client').then(module => 
+        module.supabase.functions.invoke('transcribe-audio', {
+          body: { audio: base64Audio }
+        })
+      );
+
+      if (error) {
+        console.error('Transcription error:', error);
+        return 'Transcription failed';
       }
 
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-      
-      let transcript = '';
-      
-      recognition.onresult = (event: any) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript + ' ';
-        }
-      };
-      
-      recognition.onend = () => {
-        resolve(transcript.trim() || '[No speech detected in audio segment]');
-      };
-      
-      recognition.onerror = (event: any) => {
-        reject(new Error(`Speech recognition error: ${event.error}`));
-      };
-
-      // Convert blob to audio URL and play for recognition
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-      
-      audio.onplay = () => {
-        recognition.start();
-      };
-      
-      audio.onended = () => {
-        recognition.stop();
-      };
-      
-      audio.play();
-    });
+      return data?.text || 'No speech detected';
+    } catch (error) {
+      console.error('Error in transcribeAudio:', error);
+      return 'Transcription error';
+    }
   }
 
-  // Get audio chunks with their transcripts
-  async getTranscribedTimeframe(minutes: number): Promise<{
-    timeframe: AudioTimeframe;
-    fullTranscript: string;
-  }> {
-    const timeframe = this.getAudioForTimeframe(minutes);
-    
-    // Transcribe each chunk if not already done
-    const transcriptionPromises = timeframe.chunks.map(async (chunk) => {
-      if (!chunk.transcript) {
-        try {
-          chunk.transcript = await this.transcribeAudio(chunk.audio);
-        } catch (error) {
-          console.error('Transcription failed for chunk:', error);
-          chunk.transcript = '[Transcription failed]';
-        }
-      }
-      return chunk.transcript;
-    });
-    
-    const transcripts = await Promise.all(transcriptionPromises);
-    const fullTranscript = transcripts.join('\n\n');
-    
-    return {
-      timeframe,
-      fullTranscript
-    };
+  getEntireMeetingAudio(): { chunks: AudioChunk[] } {
+    return { chunks: [...this.audioChunks] };
   }
 
-  // Real-time audio capture for live translation
-  startRealTimeCapture(callback: (audioBlob: Blob) => void): void {
-    if (!this.mediaRecorder) return;
-    
-    const realTimeRecorder = new MediaRecorder(this.mediaRecorder.stream, {
-      mimeType: 'audio/webm;codecs=opus'
-    });
-    
-    let chunks: Blob[] = [];
-    
-    realTimeRecorder.ondataavailable = (event) => {
-      chunks.push(event.data);
-    };
-    
-    realTimeRecorder.onstop = () => {
-      const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-      callback(audioBlob);
-      chunks = [];
-    };
-    
-    // Capture audio every 3 seconds for real-time translation
-    const realTimeInterval = setInterval(() => {
-      if (realTimeRecorder.state === 'recording') {
-        realTimeRecorder.stop();
-        setTimeout(() => {
-          if (realTimeRecorder.state === 'inactive') {
-            realTimeRecorder.start();
-          }
-        }, 100);
+  startRealTimeCapture(onAudioChunk: (audioBlob: Blob) => void): void {
+    // This would start continuous real-time capture
+    // For now, we'll use the existing chunks
+    const interval = setInterval(() => {
+      if (this.audioChunks.length > 0) {
+        const latestChunk = this.audioChunks[this.audioChunks.length - 1];
+        onAudioChunk(latestChunk.audio);
       }
-    }, 3000);
-    
-    realTimeRecorder.start();
-    
-    // Store the interval for cleanup
-    (realTimeRecorder as any).cleanup = () => {
-      clearInterval(realTimeInterval);
-      if (realTimeRecorder.state === 'recording') {
-        realTimeRecorder.stop();
-      }
-    };
+    }, 5000);
+
+    // Store interval ID for cleanup
+    (this as any).realTimeInterval = interval;
   }
 
   cleanup(): void {
-    this.stopMeetingRecording();
+    this.isRecording = false;
     
-    if (this.mediaRecorder && this.mediaRecorder.stream) {
-      this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    if (this.mediaRecorder) {
+      this.mediaRecorder.stop();
+      this.mediaRecorder = null;
     }
-    
-    this.audioBuffer.clear();
+
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
+
+    if ((this as any).realTimeInterval) {
+      clearInterval((this as any).realTimeInterval);
+    }
+
+    console.log('Meeting audio processor cleaned up');
   }
 }
 
