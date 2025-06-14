@@ -37,8 +37,7 @@ export const useWebRTC = () => {
         noiseSuppression: true,
         autoGainControl: true,
         sampleRate: 48000,
-        channelCount: 1,
-        latency: 0.01 // Reduce audio latency
+        channelCount: 1
       },
       video: audioOnly ? false : {
         ...videoConstraints[tileSize],
@@ -62,8 +61,7 @@ export const useWebRTC = () => {
         await audioTrack.applyConstraints({
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true,
-          latency: 0.01
+          autoGainControl: true
         });
       }
       
