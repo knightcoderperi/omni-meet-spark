@@ -58,6 +58,8 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
 
     setLoading(true);
     try {
+      console.log('Checking if user can join meeting with code:', formData.meetingCode);
+      
       // Use the database function to check if user can join
       const { data: joinCheckData, error: joinError } = await supabase
         .rpc('can_join_meeting', {
@@ -65,7 +67,10 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
           user_id_param: user?.id || null
         });
 
+      console.log('Join check result:', joinCheckData, joinError);
+
       if (joinError) {
+        console.error('Join check error:', joinError);
         throw joinError;
       }
 
@@ -75,7 +80,7 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
       if (!joinCheck.can_join) {
         toast({
           title: "Cannot join meeting",
-          description: joinCheck.reason,
+          description: joinCheck.reason || "Unable to join meeting",
           variant: "destructive"
         });
         return;
@@ -113,7 +118,8 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
       if (joinCheck.is_host || !joinCheck.requires_approval) {
         // Add to participants if not host
         if (!joinCheck.is_host) {
-          await supabase
+          console.log('Adding participant to meeting');
+          const { error: participantError } = await supabase
             .from('meeting_participants')
             .insert({
               meeting_id: joinCheck.meeting_id,
@@ -127,6 +133,16 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
                 platform: navigator.platform
               }
             });
+
+          if (participantError) {
+            console.error('Error adding participant:', participantError);
+            toast({
+              title: "Error joining meeting",
+              description: "Failed to add you as a participant",
+              variant: "destructive"
+            });
+            return;
+          }
         }
 
         toast({
@@ -140,6 +156,7 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
       }
 
       // Add to lobby queue for approval
+      console.log('Adding to lobby queue for approval');
       const { data: lobbyEntry, error: lobbyError } = await supabase
         .from('lobby_queue')
         .insert({
@@ -159,9 +176,11 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
         .single();
 
       if (lobbyError) {
+        console.error('Error adding to lobby:', lobbyError);
         throw lobbyError;
       }
 
+      console.log('Successfully added to lobby queue:', lobbyEntry);
       setLobbyId(lobbyEntry.id);
       setStep('waiting');
       
@@ -177,6 +196,7 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
             filter: `id=eq.${lobbyEntry.id}`
           },
           (payload) => {
+            console.log('Lobby status update:', payload);
             const status = payload.new.approval_status;
             if (status === 'approved') {
               setStep('approved');

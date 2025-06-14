@@ -838,6 +838,35 @@ export type Database = {
           },
         ]
       }
+      participations: {
+        Row: {
+          created_at: string | null
+          id: number
+          meeting_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: never
+          meeting_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: never
+          meeting_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participations_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1005,24 +1034,55 @@ export type Database = {
     }
     Functions: {
       can_join_meeting: {
-        Args: { meeting_code_param: string; user_id_param?: string }
+        Args:
+          | Record<PropertyKey, never>
+          | { meeting_code_param: string; user_id_param?: string }
+          | { meeting_id: number }
         Returns: Json
+      }
+      create_instant_meeting: {
+        Args: { user_id: string; title: string; description: string }
+        Returns: string
       }
       generate_meeting_code: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
       generate_shareable_link: {
-        Args: { meeting_code: string }
+        Args: Record<PropertyKey, never> | { meeting_code: string }
         Returns: string
+      }
+      get_current_user_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_meeting_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: number[]
+      }
+      get_user_meeting_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: number[]
       }
       handle_failed_login: {
         Args: { user_email: string }
         Returns: Json
       }
+      is_host: {
+        Args: Record<PropertyKey, never> | { user_id: string }
+        Returns: boolean
+      }
       reset_failed_attempts: {
         Args: { user_email: string }
         Returns: undefined
+      }
+      user_is_meeting_host: {
+        Args: { meeting_id_param: string }
+        Returns: boolean
+      }
+      user_is_meeting_participant: {
+        Args: { meeting_id_param: string }
+        Returns: boolean
       }
     }
     Enums: {
