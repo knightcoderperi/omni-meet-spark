@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { WebRTCSignalingService, SignalingMessage } from '@/services/webrtcSignaling';
 
@@ -211,7 +210,7 @@ export const useWebRTC = (meetingId?: string, userId?: string) => {
         });
         setConnectedPeers(prev => {
           const newSet = new Set(prev);
-          newSet.delete(peerId);
+          newSet.delete(message.peerId);
           return newSet;
         });
         break;
