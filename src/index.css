@@ -117,6 +117,11 @@
     @apply bg-black/20 backdrop-blur-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10;
   }
 
+  .glass-effect-premium {
+    @apply bg-white/10 backdrop-blur-3xl border border-white/20 shadow-2xl;
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+
   .hover-lift {
     @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl;
   }
@@ -131,6 +136,13 @@
 
   .glow-purple {
     box-shadow: 0 0 30px rgba(139, 92, 246, 0.4), 0 0 60px rgba(139, 92, 246, 0.2);
+  }
+
+  .glow-premium {
+    box-shadow: 
+      0 0 20px rgba(6, 182, 212, 0.3),
+      0 0 40px rgba(59, 130, 246, 0.2),
+      0 0 60px rgba(139, 92, 246, 0.1);
   }
 
   .animate-float {
@@ -150,6 +162,7 @@
     animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
+  /* Premium gradient borders */
   .gradient-border {
     position: relative;
     background: linear-gradient(90deg, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.8)) padding-box,
@@ -164,10 +177,16 @@
     border: 2px solid transparent;
   }
 
+  /* Premium card styles */
   .card-premium {
-    @apply bg-gradient-to-br from-slate-900/90 to-black/90 backdrop-blur-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 rounded-3xl;
+    @apply bg-gradient-to-br from-white/90 to-white/70 dark:from-slate-900/90 dark:to-black/90 backdrop-blur-2xl border border-white/20 dark:border-cyan-500/20 shadow-2xl shadow-cyan-500/10 rounded-3xl;
   }
 
+  .card-premium-hover {
+    @apply transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-500/25;
+  }
+
+  /* Premium buttons */
   .button-primary {
     @apply bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-2xl shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300 rounded-2xl font-medium;
   }
@@ -176,10 +195,16 @@
     @apply bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-2xl shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300 rounded-2xl font-medium;
   }
 
+  .button-glass {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/20 text-white transition-all duration-300 rounded-2xl font-medium;
+  }
+
+  /* Premium inputs */
   .input-premium {
     @apply bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all duration-300 hover:bg-white/10;
   }
 
+  /* Premium effects */
   .modal-backdrop {
     @apply bg-black/60 backdrop-blur-xl;
   }
@@ -195,6 +220,56 @@
     box-shadow: 
       0 25px 50px -12px rgba(6, 182, 212, 0.25),
       0 0 0 1px rgba(6, 182, 212, 0.1);
+  }
+
+  /* Video optimization utilities */
+  .video-container {
+    @apply relative overflow-hidden rounded-2xl;
+    contain: layout style paint;
+  }
+
+  .video-element {
+    @apply w-full h-full object-cover;
+    will-change: transform;
+  }
+
+  /* Performance optimization for video tiles */
+  .video-tile-optimized {
+    contain: layout style paint;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  /* Enhanced animations */
+  .premium-enter {
+    animation: premiumEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .premium-exit {
+    animation: premiumExit 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes premiumEnter {
+    0% {
+      opacity: 0;
+      transform: scale(0.9) translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes premiumExit {
+    0% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.9) translateY(-20px);
+    }
   }
 }
 
@@ -273,57 +348,30 @@
 
 /* Meeting room specific premium styles */
 .meeting-controls {
-  @apply bg-black/30 backdrop-blur-2xl border border-cyan-500/20 rounded-3xl shadow-2xl shadow-cyan-500/10;
+  @apply bg-white/10 dark:bg-black/30 backdrop-blur-2xl border border-white/20 dark:border-cyan-500/20 rounded-3xl shadow-2xl shadow-cyan-500/10;
 }
 
 .video-tile {
-  @apply bg-gradient-to-br from-slate-900/80 to-black/80 backdrop-blur-2xl border border-cyan-500/20 rounded-3xl shadow-2xl shadow-cyan-500/10;
+  @apply bg-gradient-to-br from-white/80 to-white/60 dark:from-slate-900/80 dark:to-black/80 backdrop-blur-2xl border border-white/20 dark:border-cyan-500/20 rounded-3xl shadow-2xl shadow-cyan-500/10;
 }
 
 .video-tile-premium {
-  @apply bg-gradient-to-br from-slate-900/90 to-black/90 backdrop-blur-2xl border border-cyan-500/30 rounded-3xl shadow-2xl shadow-cyan-500/15 hover:shadow-cyan-500/25 transition-all duration-300;
+  @apply bg-gradient-to-br from-white/90 to-white/70 dark:from-slate-900/90 dark:to-black/90 backdrop-blur-2xl border border-white/30 dark:border-cyan-500/30 rounded-3xl shadow-2xl shadow-cyan-500/15 hover:shadow-cyan-500/25 transition-all duration-300;
 }
 
-/* Whiteboard specific premium styles */
-.whiteboard-canvas {
-  @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-cyan-500/20 rounded-3xl shadow-2xl;
+/* Performance optimizations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
 }
 
-.color-picker-premium {
-  @apply bg-gradient-to-br from-slate-900/95 to-black/95 backdrop-blur-2xl border border-cyan-500/20 rounded-3xl shadow-2xl shadow-cyan-500/10;
+.will-change-transform {
+  will-change: transform;
 }
 
-/* Typography enhancements */
-.text-premium {
-  @apply font-medium tracking-wide;
-}
-
-.heading-premium {
-  @apply font-bold tracking-tight;
-}
-
-/* Button hover effects */
-.btn-premium-hover {
-  @apply transition-all duration-300 hover:scale-105 hover:-translate-y-1;
-}
-
-/* Card hover effects */
-.card-hover-premium {
-  @apply transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:shadow-2xl;
-}
-
-/* Loading animations */
-@keyframes spin-slow {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin-slow {
-  animation: spin-slow 2s linear infinite;
+.will-change-opacity {
+  will-change: opacity;
 }
 
 /* Micro-interactions */
@@ -339,7 +387,7 @@
   @apply transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/25;
 }
 
-/* Premium spacing */
+/* Premium spacing and layout */
 .spacing-premium {
   @apply space-y-8;
 }
@@ -350,4 +398,19 @@
 
 .margin-premium {
   @apply m-8;
+}
+
+/* High DPI optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .high-dpi-optimized {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Hardware acceleration for smooth animations */
+.hardware-accelerated {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform, opacity;
 }

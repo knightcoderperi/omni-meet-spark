@@ -5,7 +5,7 @@ import {
   Mic, MicOff, Video, VideoOff, Phone, Users, MessageSquare, 
   Settings, Share, Circle, MoreVertical, Monitor, Hand, Clock,
   Copy, Lock, Shield, Volume2, VolumeX, Camera, Maximize,
-  PenTool, Presentation, Brain, Lightbulb, Languages, Share2
+  PenTool, Presentation, Brain, Lightbulb, Languages, Share2, Layout
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import VideoTile from '@/components/meeting/VideoTile';
+import OptimizedVideoTile from '@/components/meeting/OptimizedVideoTile';
 import ControlsBar from '@/components/meeting/ControlsBar';
 import ChatPanel from '@/components/meeting/ChatPanel';
 import ParticipantsPanel from '@/components/meeting/ParticipantsPanel';
@@ -27,7 +27,9 @@ import TaskGenerator from '@/components/meeting/TaskGenerator';
 import TranslationChat from '@/components/meeting/TranslationChat';
 import SmartCapsuleSummary from '@/components/meeting/SmartCapsuleSummary';
 import ShareLinkModal from '@/components/meeting/ShareLinkModal';
+import LayoutCustomizationPanel from '@/components/meeting/LayoutCustomizationPanel';
 import { useWebRTC } from '@/hooks/useWebRTC';
+import { useLayoutCustomization } from '@/hooks/useLayoutCustomization';
 import { useTheme } from '@/hooks/useTheme';
 
 interface Meeting {
@@ -69,6 +71,7 @@ const Meeting = () => {
   const [showSmartSummary, setShowSmartSummary] = useState(false);
   const [showTaskGenerator, setShowTaskGenerator] = useState(false);
   const [showTranslationChat, setShowTranslationChat] = useState(false);
+  const [showLayoutPanel, setShowLayoutPanel] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
   const [meetingDuration, setMeetingDuration] = useState(0);
   const [reactions, setReactions] = useState<Array<{id: string, emoji: string, x: number, y: number}>>([]);
@@ -89,6 +92,8 @@ const Meeting = () => {
     cleanupWebRTC
   } = useWebRTC();
 
+  const { settings, getGridClasses } = useLayoutCustomization();
+
   useEffect(() => {
     if (!user) {
       navigate('/auth');
@@ -99,7 +104,6 @@ const Meeting = () => {
       fetchMeeting();
     }
 
-    // Timer for meeting duration
     const timer = setInterval(() => {
       setMeetingDuration(prev => prev + 1);
     }, 1000);
@@ -127,7 +131,6 @@ const Meeting = () => {
 
       setMeeting(data);
       
-      // Add user as participant
       await supabase
         .from('meeting_participants')
         .upsert({
@@ -153,7 +156,6 @@ const Meeting = () => {
       await initializeWebRTC(audioOnly);
       setHasJoined(true);
       
-      // Add self as participant
       const newParticipant: Participant = {
         id: user?.id || 'self',
         name: userName,
@@ -219,12 +221,11 @@ const Meeting = () => {
 
   const addReaction = (emoji: string) => {
     const id = Date.now().toString();
-    const x = Math.random() * 80 + 10; // 10-90%
-    const y = Math.random() * 60 + 20; // 20-80%
+    const x = Math.random() * 80 + 10;
+    const y = Math.random() * 60 + 20;
     
     setReactions(prev => [...prev, { id, emoji, x, y }]);
     
-    // Remove reaction after animation
     setTimeout(() => {
       setReactions(prev => prev.filter(r => r.id !== id));
     }, 3000);
@@ -239,6 +240,11 @@ const Meeting = () => {
       return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getTileSize = () => {
+    return settings.compactMode ? 'small' : settings.gridSize === 'small' ? 'small' : 
+           settings.gridSize === 'large' ? 'large' : 'medium';
   };
 
   const openValidationDashboard = () => {
@@ -285,66 +291,31 @@ const Meeting = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 relative overflow-hidden">
-      {/* Animated Background Elements */}
+      {/* Enhanced Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
-          className="absolute top-0 left-0 w-96 h-96 bg-cyan-400/10 dark:bg-cyan-500/20 rounded-full blur-3xl"
+          className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-blue-400/10 dark:from-cyan-500/20 dark:to-blue-500/20 rounded-full blur-3xl"
           animate={{ 
             x: [0, 100, 0],
             y: [0, 50, 0],
-            scale: [1, 1.1, 1]
+            scale: [1, 1.1, 1],
+            rotate: [0, 180, 360]
           }}
           transition={{ duration: 20, repeat: Infinity }}
         />
         <motion.div 
-          className="absolute bottom-0 right-0 w-96 h-96 bg-blue-400/10 dark:bg-blue-500/20 rounded-full blur-3xl"
+          className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-r from-purple-400/10 to-pink-400/10 dark:from-purple-500/20 dark:to-pink-500/20 rounded-full blur-3xl"
           animate={{ 
             x: [0, -100, 0],
             y: [0, -50, 0],
-            scale: [1, 1.2, 1]
+            scale: [1, 1.2, 1],
+            rotate: [360, 180, 0]
           }}
           transition={{ duration: 25, repeat: Infinity }}
         />
       </div>
 
-      {/* Meeting Lobby */}
-      <MeetingLobby
-        meetingId={meeting?.id || ''}
-        isHost={meeting?.host_id === user?.id}
-        onParticipantUpdate={() => {}}
-      />
-
-      {/* Share Link Modal */}
-      <ShareLinkModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        meetingCode={meetingCode || ''}
-        meetingTitle={meeting?.title || 'Meeting'}
-      />
-
-      {/* Emoji Reactions Overlay */}
-      <AnimatePresence>
-        {reactions.map(reaction => (
-          <motion.div
-            key={reaction.id}
-            className="absolute z-50 text-4xl pointer-events-none"
-            style={{ left: `${reaction.x}%`, top: `${reaction.y}%` }}
-            initial={{ opacity: 0, scale: 0, y: 0 }}
-            animate={{ 
-              opacity: [0, 1, 1, 0], 
-              scale: [0, 1.2, 1, 0.8], 
-              y: -100,
-              rotate: [0, 10, -10, 0]
-            }}
-            exit={{ opacity: 0, scale: 0 }}
-            transition={{ duration: 3, ease: "easeOut" }}
-          >
-            {reaction.emoji}
-          </motion.div>
-        ))}
-      </AnimatePresence>
-
-      {/* Meeting Enhancement Features */}
+      {/* Meeting Enhancement Modals */}
       <AnimatePresence>
         {showSmartCapsule && (
           <SmartCapsuleSummary
@@ -403,9 +374,49 @@ const Meeting = () => {
         )}
       </AnimatePresence>
 
+      <MeetingLobby
+        meetingId={meeting?.id || ''}
+        isHost={meeting?.host_id === user?.id}
+        onParticipantUpdate={() => {}}
+      />
+
+      <ShareLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        meetingCode={meetingCode || ''}
+        meetingTitle={meeting?.title || 'Meeting'}
+      />
+
+      <LayoutCustomizationPanel
+        isOpen={showLayoutPanel}
+        onClose={() => setShowLayoutPanel(false)}
+      />
+
+      {/* Emoji Reactions Overlay */}
+      <AnimatePresence>
+        {reactions.map(reaction => (
+          <motion.div
+            key={reaction.id}
+            className="absolute z-50 text-4xl pointer-events-none"
+            style={{ left: `${reaction.x}%`, top: `${reaction.y}%` }}
+            initial={{ opacity: 0, scale: 0, y: 0 }}
+            animate={{ 
+              opacity: [0, 1, 1, 0], 
+              scale: [0, 1.2, 1, 0.8], 
+              y: -100,
+              rotate: [0, 10, -10, 0]
+            }}
+            exit={{ opacity: 0, scale: 0 }}
+            transition={{ duration: 3, ease: "easeOut" }}
+          >
+            {reaction.emoji}
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
       {/* Main Meeting Interface */}
       <div className="absolute inset-0 flex flex-col">
-        {/* Header Bar - Responsive */}
+        {/* Premium Header Bar */}
         <motion.header 
           className="bg-white/80 dark:bg-black/20 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/10 p-2 md:p-4 z-20"
           initial={{ y: -50, opacity: 0 }}
@@ -414,14 +425,16 @@ const Meeting = () => {
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 md:space-x-6">
-              <img 
+              <motion.img 
                 src="/lovable-uploads/7d88fd56-d3fa-4677-928c-8d654baae527.png" 
                 alt="OmniMeet" 
                 className="h-6 md:h-8 w-auto object-contain"
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
               />
               
               <motion.h1 
-                className="text-slate-800 dark:text-white font-bold text-sm md:text-xl truncate"
+                className="text-slate-800 dark:text-white font-bold text-sm md:text-xl truncate bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
@@ -436,26 +449,26 @@ const Meeting = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 }}
                 >
-                  <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-cyan-500/20">
+                  <div className="bg-gradient-to-r from-slate-100 to-white dark:from-slate-800 dark:to-slate-700 px-3 py-1 rounded-full border border-cyan-500/20 shadow-lg">
                     <span className="text-slate-600 dark:text-gray-400 text-sm font-mono">{meetingCode}</span>
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="ml-2 h-6 w-6 p-0"
+                      className="ml-2 h-6 w-6 p-0 hover:bg-cyan-500/10"
                       onClick={copyMeetingCode}
                     >
                       <Copy className="w-3 h-3" />
                     </Button>
                   </div>
                   
-                  <div className="flex items-center space-x-2 text-slate-600 dark:text-gray-400">
+                  <div className="flex items-center space-x-2 text-slate-600 dark:text-gray-400 bg-white/50 dark:bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm">
                     <Clock className="w-4 h-4" />
                     <span className="text-sm font-mono">{formatTime(meetingDuration)}</span>
                   </div>
                   
                   {isRecording && (
                     <motion.div 
-                      className="flex items-center space-x-2 text-red-500"
+                      className="flex items-center space-x-2 text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                     >
@@ -472,6 +485,17 @@ const Meeting = () => {
             </div>
             
             <div className="flex items-center space-x-1 md:space-x-3">
+              {/* Layout Customization Button */}
+              <Button 
+                variant="ghost" 
+                size={isMobile ? "sm" : "default"}
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
+                onClick={() => setShowLayoutPanel(true)}
+              >
+                <Layout className="w-4 h-4 mr-1" />
+                {!isMobile && "Layout"}
+              </Button>
+
               {/* Mobile Share Button */}
               {isMobile && (
                 <Button 
@@ -495,7 +519,7 @@ const Meeting = () => {
                     Share
                   </Button>
                   
-                  {/* ... keep existing code (desktop buttons) */}
+                  
                 </>
               )}
               
@@ -521,26 +545,18 @@ const Meeting = () => {
           </div>
         </motion.header>
 
-        {/* Main Content Area - Responsive */}
+        {/* Enhanced Main Content Area */}
         <div className="flex-1 flex relative">
-          {/* Video Grid - Responsive */}
+          {/* Optimized Video Grid */}
           <motion.div 
             className={`flex-1 p-2 md:p-6 ${
               (showChat || showParticipants || showAI) && !isMobile ? 'mr-80' : ''
             } transition-all duration-300`}
             layout
           >
-            <div className={`grid gap-2 md:gap-6 h-full ${
-              isMobile 
-                ? 'grid-cols-1' 
-                : remoteStreams.size === 0 
-                  ? 'grid-cols-1' 
-                  : remoteStreams.size === 1 
-                    ? 'grid-cols-1 md:grid-cols-2' 
-                    : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-            }`}>
-              {/* Self Video */}
-              <VideoTile
+            <div className={`grid gap-2 md:gap-4 h-full ${getGridClasses()}`}>
+              {/* Self Video with Premium Styling */}
+              <OptimizedVideoTile
                 participant={{
                   id: 'self',
                   name: 'You',
@@ -551,11 +567,15 @@ const Meeting = () => {
                   stream: localStream
                 }}
                 isLocal={true}
+                showNames={settings.showParticipantNames}
+                showQuality={settings.showConnectionQuality}
+                enableAnimations={settings.enableAnimations}
+                tileSize={getTileSize()}
               />
               
               {/* Remote Participants */}
               {Array.from(remoteStreams.entries()).map(([peerId, stream]) => (
-                <VideoTile
+                <OptimizedVideoTile
                   key={peerId}
                   participant={{
                     id: peerId,
@@ -567,21 +587,30 @@ const Meeting = () => {
                     stream
                   }}
                   isLocal={false}
+                  showNames={settings.showParticipantNames}
+                  showQuality={settings.showConnectionQuality}
+                  enableAnimations={settings.enableAnimations}
+                  tileSize={getTileSize()}
                 />
               ))}
               
-              {/* Placeholder Tiles - Only show on desktop when needed */}
-              {!isMobile && Array.from({ length: Math.max(0, 3 - remoteStreams.size) }).map((_, i) => (
+              {/* Enhanced Placeholder Tiles */}
+              {!isMobile && !settings.compactMode && Array.from({ length: Math.max(0, 3 - remoteStreams.size) }).map((_, i) => (
                 <motion.div
                   key={`placeholder-${i}`}
-                  className="relative bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-2xl border-2 border-dashed border-slate-300 dark:border-cyan-500/30 min-h-[150px] md:min-h-[200px] flex items-center justify-center"
+                  className="relative bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-800/80 dark:to-slate-900/80 backdrop-blur-xl rounded-2xl border-2 border-dashed border-slate-300/50 dark:border-cyan-500/30 min-h-[150px] md:min-h-[200px] flex items-center justify-center"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.1 }}
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.02, borderColor: 'rgba(6, 182, 212, 0.5)' }}
                 >
                   <div className="text-center text-slate-400 dark:text-gray-500">
-                    <Users className="w-8 md:w-12 h-8 md:h-12 mx-auto mb-3 opacity-50" />
+                    <motion.div
+                      animate={{ y: [0, -10, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+                    >
+                      <Users className="w-8 md:w-12 h-8 md:h-12 mx-auto mb-3 opacity-50" />
+                    </motion.div>
                     <p className="text-xs md:text-sm">Waiting for participants...</p>
                   </div>
                 </motion.div>
@@ -589,12 +618,12 @@ const Meeting = () => {
             </div>
           </motion.div>
 
-          {/* Side Panels - Mobile Modal Style */}
+          {/* Enhanced Side Panels */}
           <AnimatePresence>
             {(showChat || showParticipants || showAI) && (
               <motion.div
                 className={`
-                  absolute right-0 top-0 bottom-0 bg-white/90 dark:bg-black/30 backdrop-blur-xl border-l border-slate-200/50 dark:border-white/10 z-10
+                  absolute right-0 top-0 bottom-0 bg-white/95 dark:bg-black/30 backdrop-blur-2xl border-l border-slate-200/50 dark:border-white/10 z-10
                   ${isMobile ? 'left-0 w-full' : 'w-80'}
                 `}
                 initial={{ x: isMobile ? '100%' : 320, opacity: 0 }}
@@ -616,7 +645,7 @@ const Meeting = () => {
           </AnimatePresence>
         </div>
 
-        {/* Controls Bar - Responsive */}
+        {/* Enhanced Controls Bar */}
         <ControlsBar
           isMuted={isMuted}
           isVideoOff={isVideoOff}
