@@ -1034,10 +1034,7 @@ export type Database = {
     }
     Functions: {
       can_join_meeting: {
-        Args:
-          | Record<PropertyKey, never>
-          | { meeting_code_param: string; user_id_param?: string }
-          | { meeting_id: number }
+        Args: { meeting_code_param: string; user_id_param?: string }
         Returns: Json
       }
       create_instant_meeting: {
@@ -1049,27 +1046,19 @@ export type Database = {
         Returns: string
       }
       generate_shareable_link: {
-        Args: Record<PropertyKey, never> | { meeting_code: string }
+        Args: { meeting_code: string }
         Returns: string
       }
       get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      get_meeting_ids: {
-        Args: Record<PropertyKey, never>
-        Returns: number[]
-      }
-      get_user_meeting_ids: {
-        Args: Record<PropertyKey, never>
-        Returns: number[]
-      }
       handle_failed_login: {
         Args: { user_email: string }
         Returns: Json
       }
       is_host: {
-        Args: Record<PropertyKey, never> | { user_id: string }
+        Args: { user_id: string; meeting_id: string }
         Returns: boolean
       }
       reset_failed_attempts: {
