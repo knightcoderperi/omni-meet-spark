@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -7,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Participant {
   id: string;
@@ -39,16 +39,18 @@ const VideoTile: React.FC<VideoTileProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [volume, setVolume] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (videoRef.current && participant.stream) {
       videoRef.current.srcObject = participant.stream;
       
-      if (isLocal) {
-        videoRef.current.muted = true; // Always mute local video to prevent feedback
+      // Always mute local video to prevent feedback, regardless of isLocal prop
+      if (isLocal || participant.id === 'self') {
+        videoRef.current.muted = true;
       }
     }
-  }, [participant.stream, isLocal]);
+  }, [participant.stream, isLocal, participant.id]);
 
   // Audio level visualization
   useEffect(() => {
@@ -98,12 +100,13 @@ const VideoTile: React.FC<VideoTileProps> = ({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ duration: 0.3 }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      whileHover={{ scale: 1.02 }}
+      onMouseEnter={() => !isMobile && setIsHovered(true)}
+      onMouseLeave={() => !isMobile && setIsHovered(false)}
+      whileHover={!isMobile ? { scale: 1.02 } : {}}
     >
       <Card className={`
-        relative overflow-hidden h-full min-h-[200px] transition-all duration-300
+        relative overflow-hidden h-full transition-all duration-300
+        ${isMobile ? 'min-h-[200px]' : 'min-h-[200px]'}
         ${isPinned ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}
         ${participant.isVideoOff ? 'bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900' : 'bg-black'}
         ${volume > 30 ? 'ring-2 ring-green-400 ring-opacity-60' : ''}
@@ -116,7 +119,7 @@ const VideoTile: React.FC<VideoTileProps> = ({
             ref={videoRef}
             autoPlay
             playsInline
-            muted={isLocal}
+            muted={isLocal || participant.id === 'self'}
             className="w-full h-full object-cover"
           />
         )}
@@ -125,7 +128,9 @@ const VideoTile: React.FC<VideoTileProps> = ({
         {participant.isVideoOff && (
           <div className="w-full h-full flex items-center justify-center">
             <motion.div 
-              className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg"
+              className={`bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg ${
+                isMobile ? 'w-12 h-12 text-lg' : 'w-16 h-16 text-xl'
+              }`}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2 }}
@@ -140,34 +145,34 @@ const VideoTile: React.FC<VideoTileProps> = ({
 
         {/* Status Indicators - Bottom Left */}
         <motion.div 
-          className="absolute bottom-3 left-3 flex items-center space-x-2"
+          className={`absolute left-2 flex items-center space-x-1 ${isMobile ? 'bottom-2' : 'bottom-3'}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
           {participant.isMuted ? (
             <motion.div
-              className="p-1.5 bg-red-500 rounded-full"
+              className={`bg-red-500 rounded-full ${isMobile ? 'p-1' : 'p-1.5'}`}
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              <MicOff className="w-3 h-3 text-white" />
+              <MicOff className={`text-white ${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
             </motion.div>
           ) : (
             <motion.div
-              className={`p-1.5 rounded-full transition-colors ${
+              className={`rounded-full transition-colors ${
                 volume > 30 ? 'bg-green-500' : 'bg-gray-600'
-              }`}
+              } ${isMobile ? 'p-1' : 'p-1.5'}`}
               animate={volume > 30 ? { scale: [1, 1.2, 1] } : {}}
               transition={{ duration: 0.3 }}
             >
-              <Mic className="w-3 h-3 text-white" />
+              <Mic className={`text-white ${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
             </motion.div>
           )}
           
           {participant.isVideoOff && (
-            <div className="p-1.5 bg-red-500 rounded-full">
-              <VideoOff className="w-3 h-3 text-white" />
+            <div className={`bg-red-500 rounded-full ${isMobile ? 'p-1' : 'p-1.5'}`}>
+              <VideoOff className={`text-white ${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
             </div>
           )}
         </motion.div>
@@ -176,7 +181,9 @@ const VideoTile: React.FC<VideoTileProps> = ({
         <AnimatePresence>
           {participant.handRaised && (
             <motion.div
-              className="absolute top-3 right-3 p-2 bg-yellow-500 rounded-full"
+              className={`absolute bg-yellow-500 rounded-full ${
+                isMobile ? 'top-2 right-2 p-1.5' : 'top-3 right-3 p-2'
+              }`}
               initial={{ scale: 0, rotate: -90 }}
               animate={{ 
                 scale: 1, 
@@ -189,29 +196,36 @@ const VideoTile: React.FC<VideoTileProps> = ({
                 y: { duration: 1, repeat: Infinity }
               }}
             >
-              <Hand className="w-4 h-4 text-white" />
+              <Hand className={`text-white ${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Name Tag */}
         <motion.div 
-          className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full flex items-center space-x-1"
+          className={`absolute bg-black/70 backdrop-blur-sm rounded-full flex items-center space-x-1 ${
+            isMobile 
+              ? 'bottom-2 right-2 px-2 py-0.5' 
+              : 'bottom-3 right-3 px-3 py-1'
+          }`}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4 }}
         >
           {participant.isHost && (
-            <Crown className="w-3 h-3 text-yellow-400" />
+            <Crown className={`text-yellow-400 ${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
           )}
-          <span className="text-white text-xs font-medium">
-            {participant.name}
+          <span className={`text-white font-medium ${isMobile ? 'text-xs' : 'text-xs'}`}>
+            {isMobile && participant.name.length > 8 
+              ? `${participant.name.substring(0, 8)}...` 
+              : participant.name
+            }
           </span>
         </motion.div>
 
-        {/* Hover Controls */}
+        {/* Hover Controls - Desktop Only */}
         <AnimatePresence>
-          {isHovered && !isLocal && (
+          {isHovered && !isLocal && !isMobile && (
             <motion.div
               className="absolute top-3 left-3 flex space-x-1"
               initial={{ opacity: 0, scale: 0.8 }}
@@ -236,25 +250,17 @@ const VideoTile: React.FC<VideoTileProps> = ({
               >
                 <Maximize className="w-3 h-3 text-white" />
               </Button>
-              
-              <Button
-                variant="secondary"
-                size="sm"
-                className="h-8 w-8 p-0 bg-black/50 backdrop-blur-sm border-white/20 hover:bg-black/70"
-              >
-                <MoreVertical className="w-3 h-3 text-white" />
-              </Button>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Connection Quality Indicator */}
-        <div className="absolute top-3 right-3">
+        <div className={`absolute ${isMobile ? 'top-2 right-8' : 'top-3 right-16'}`}>
           <div className="flex space-x-0.5">
-            <div className="w-1 h-2 bg-green-400 rounded-full" />
-            <div className="w-1 h-3 bg-green-400 rounded-full" />
-            <div className="w-1 h-4 bg-green-400 rounded-full" />
-            <div className="w-1 h-2 bg-gray-400 rounded-full" />
+            <div className={`bg-green-400 rounded-full ${isMobile ? 'w-0.5 h-1.5' : 'w-1 h-2'}`} />
+            <div className={`bg-green-400 rounded-full ${isMobile ? 'w-0.5 h-2' : 'w-1 h-3'}`} />
+            <div className={`bg-green-400 rounded-full ${isMobile ? 'w-0.5 h-2.5' : 'w-1 h-4'}`} />
+            <div className={`bg-gray-400 rounded-full ${isMobile ? 'w-0.5 h-1.5' : 'w-1 h-2'}`} />
           </div>
         </div>
 

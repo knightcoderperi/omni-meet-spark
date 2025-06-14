@@ -5,13 +5,14 @@ import {
   Mic, MicOff, Video, VideoOff, Phone, Users, MessageSquare, 
   Settings, Share, Circle, MoreVertical, Monitor, Hand, Clock,
   Copy, Lock, Shield, Volume2, VolumeX, Camera, Maximize,
-  PenTool, Presentation, Brain, Lightbulb, Languages
+  PenTool, Presentation, Brain, Lightbulb, Languages, Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import VideoTile from '@/components/meeting/VideoTile';
 import ControlsBar from '@/components/meeting/ControlsBar';
 import ChatPanel from '@/components/meeting/ChatPanel';
@@ -25,6 +26,7 @@ import SmartSummary from '@/components/meeting/SmartSummary';
 import TaskGenerator from '@/components/meeting/TaskGenerator';
 import TranslationChat from '@/components/meeting/TranslationChat';
 import SmartCapsuleSummary from '@/components/meeting/SmartCapsuleSummary';
+import ShareLinkModal from '@/components/meeting/ShareLinkModal';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -52,6 +54,7 @@ const Meeting = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
+  const isMobile = useIsMobile();
   
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,6 +73,7 @@ const Meeting = () => {
   const [meetingDuration, setMeetingDuration] = useState(0);
   const [reactions, setReactions] = useState<Array<{id: string, emoji: string, x: number, y: number}>>([]);
   const [showSmartCapsule, setShowSmartCapsule] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const {
     localStream,
@@ -243,6 +247,15 @@ const Meeting = () => {
     }
   };
 
+  const shareMeetingLink = () => {
+    const meetingUrl = `${window.location.origin}/meeting/${meetingCode}`;
+    navigator.clipboard.writeText(meetingUrl);
+    toast({
+      title: "Meeting link copied",
+      description: "Share this link with others to join the meeting"
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
@@ -299,6 +312,14 @@ const Meeting = () => {
         meetingId={meeting?.id || ''}
         isHost={meeting?.host_id === user?.id}
         onParticipantUpdate={() => {}}
+      />
+
+      {/* Share Link Modal */}
+      <ShareLinkModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        meetingCode={meetingCode || ''}
+        meetingTitle={meeting?.title || 'Meeting'}
       />
 
       {/* Emoji Reactions Overlay */}
@@ -384,23 +405,23 @@ const Meeting = () => {
 
       {/* Main Meeting Interface */}
       <div className="absolute inset-0 flex flex-col">
-        {/* Header Bar */}
+        {/* Header Bar - Responsive */}
         <motion.header 
-          className="bg-white/80 dark:bg-black/20 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/10 p-4 z-20"
+          className="bg-white/80 dark:bg-black/20 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/10 p-2 md:p-4 z-20"
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-2 md:space-x-6">
               <img 
                 src="/lovable-uploads/7d88fd56-d3fa-4677-928c-8d654baae527.png" 
                 alt="OmniMeet" 
-                className="h-8 w-auto object-contain"
+                className="h-6 md:h-8 w-auto object-contain"
               />
               
               <motion.h1 
-                className="text-slate-800 dark:text-white font-bold text-xl"
+                className="text-slate-800 dark:text-white font-bold text-sm md:text-xl truncate"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
@@ -408,140 +429,116 @@ const Meeting = () => {
                 {meeting?.title || 'Meeting'}
               </motion.h1>
               
-              <motion.div 
-                className="flex items-center space-x-3"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-cyan-500/20">
-                  <span className="text-slate-600 dark:text-gray-400 text-sm font-mono">{meetingCode}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="ml-2 h-6 w-6 p-0"
-                    onClick={copyMeetingCode}
-                  >
-                    <Copy className="w-3 h-3" />
-                  </Button>
-                </div>
-                
-                <div className="flex items-center space-x-2 text-slate-600 dark:text-gray-400">
-                  <Clock className="w-4 h-4" />
-                  <span className="text-sm font-mono">{formatTime(meetingDuration)}</span>
-                </div>
-                
-                {isRecording && (
-                  <motion.div 
-                    className="flex items-center space-x-2 text-red-500"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                  >
+              {!isMobile && (
+                <motion.div 
+                  className="flex items-center space-x-3"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-cyan-500/20">
+                    <span className="text-slate-600 dark:text-gray-400 text-sm font-mono">{meetingCode}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="ml-2 h-6 w-6 p-0"
+                      onClick={copyMeetingCode}
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 text-slate-600 dark:text-gray-400">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-sm font-mono">{formatTime(meetingDuration)}</span>
+                  </div>
+                  
+                  {isRecording && (
                     <motion.div 
-                      className="w-3 h-3 bg-red-500 rounded-full shadow-lg shadow-red-500/50"
-                      animate={{ opacity: [1, 0.3, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    />
-                    <span className="text-sm font-medium">Recording</span>
-                  </motion.div>
-                )}
-              </motion.div>
+                      className="flex items-center space-x-2 text-red-500"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                    >
+                      <motion.div 
+                        className="w-3 h-3 bg-red-500 rounded-full shadow-lg shadow-red-500/50"
+                        animate={{ opacity: [1, 0.3, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
+                      <span className="text-sm font-medium">Recording</span>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-1 md:space-x-3">
+              {/* Mobile Share Button */}
+              {isMobile && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                  onClick={() => setShowShareModal(true)}
+                >
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              )}
+              
+              {!isMobile && (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
+                    onClick={() => setShowShareModal(true)}
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
+                  
+                  {/* ... keep existing code (desktop buttons) */}
+                </>
+              )}
+              
               <Button 
                 variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
-                onClick={() => setShowSmartCapsule(true)}
-              >
-                <Brain className="w-4 h-4 mr-2" />
-                Smart Capsule
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
-                onClick={() => setShowSmartSummary(true)}
-              >
-                <Brain className="w-4 h-4 mr-2" />
-                Smart Summary
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
-                onClick={() => setShowTaskGenerator(true)}
-              >
-                <Lightbulb className="w-4 h-4 mr-2" />
-                AI Tasks
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
-                onClick={() => setShowTranslationChat(true)}
-              >
-                <Languages className="w-4 h-4 mr-2" />
-                Translate
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
-                onClick={() => setShowInsights(!showInsights)}
-              >
-                <Brain className="w-4 h-4 mr-2" />
-                Insights
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
-                onClick={() => setShowWhiteboard(true)}
-              >
-                <PenTool className="w-4 h-4 mr-2" />
-                Whiteboard
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
+                size={isMobile ? "sm" : "default"}
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 onClick={() => setShowParticipants(!showParticipants)}
               >
-                <Users className="w-4 h-4 mr-2" />
-                {participants.length}
+                <Users className="w-4 h-4 mr-1" />
+                {!isMobile && participants.length}
               </Button>
+              
               <Button 
                 variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
+                size={isMobile ? "sm" : "default"}
+                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 onClick={() => setShowChat(!showChat)}
               >
                 <MessageSquare className="w-4 h-4" />
               </Button>
-              <Button 
-                variant="ghost" 
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
-              >
-                <Settings className="w-4 h-4" />
-              </Button>
-              
-              {/* Add System Validation Button */}
-              {meeting?.host_id === user?.id && (
-                <Button 
-                  variant="ghost" 
-                  className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
-                  onClick={openValidationDashboard}
-                >
-                  <Brain className="w-4 h-4 mr-2" />
-                  AI Validation
-                </Button>
-              )}
             </div>
           </div>
         </motion.header>
 
-        {/* Main Content Area */}
+        {/* Main Content Area - Responsive */}
         <div className="flex-1 flex relative">
-          {/* Video Grid */}
+          {/* Video Grid - Responsive */}
           <motion.div 
-            className={`flex-1 p-6 ${showChat || showParticipants || showAI ? 'mr-80' : ''} transition-all duration-300`}
+            className={`flex-1 p-2 md:p-6 ${
+              (showChat || showParticipants || showAI) && !isMobile ? 'mr-80' : ''
+            } transition-all duration-300`}
             layout
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 h-full">
+            <div className={`grid gap-2 md:gap-6 h-full ${
+              isMobile 
+                ? 'grid-cols-1' 
+                : remoteStreams.size === 0 
+                  ? 'grid-cols-1' 
+                  : remoteStreams.size === 1 
+                    ? 'grid-cols-1 md:grid-cols-2' 
+                    : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+            }`}>
               {/* Self Video */}
               <VideoTile
                 participant={{
@@ -573,33 +570,36 @@ const Meeting = () => {
                 />
               ))}
               
-              {/* Placeholder Tiles */}
-              {Array.from({ length: Math.max(0, 6 - remoteStreams.size) }).map((_, i) => (
+              {/* Placeholder Tiles - Only show on desktop when needed */}
+              {!isMobile && Array.from({ length: Math.max(0, 3 - remoteStreams.size) }).map((_, i) => (
                 <motion.div
                   key={`placeholder-${i}`}
-                  className="relative bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-2xl border-2 border-dashed border-slate-300 dark:border-cyan-500/30 min-h-[200px] flex items-center justify-center"
+                  className="relative bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-2xl border-2 border-dashed border-slate-300 dark:border-cyan-500/30 min-h-[150px] md:min-h-[200px] flex items-center justify-center"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.1 }}
                   whileHover={{ scale: 1.02 }}
                 >
                   <div className="text-center text-slate-400 dark:text-gray-500">
-                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">Waiting for participants...</p>
+                    <Users className="w-8 md:w-12 h-8 md:h-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-xs md:text-sm">Waiting for participants...</p>
                   </div>
                 </motion.div>
               ))}
             </div>
           </motion.div>
 
-          {/* Side Panels */}
+          {/* Side Panels - Mobile Modal Style */}
           <AnimatePresence>
             {(showChat || showParticipants || showAI) && (
               <motion.div
-                className="absolute right-0 top-0 bottom-0 w-80 bg-white/90 dark:bg-black/30 backdrop-blur-xl border-l border-slate-200/50 dark:border-white/10 z-10"
-                initial={{ x: 320, opacity: 0 }}
+                className={`
+                  absolute right-0 top-0 bottom-0 bg-white/90 dark:bg-black/30 backdrop-blur-xl border-l border-slate-200/50 dark:border-white/10 z-10
+                  ${isMobile ? 'left-0 w-full' : 'w-80'}
+                `}
+                initial={{ x: isMobile ? '100%' : 320, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                exit={{ x: 320, opacity: 0 }}
+                exit={{ x: isMobile ? '100%' : 320, opacity: 0 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
               >
                 {showChat && <ChatPanel onClose={() => setShowChat(false)} />}
@@ -616,7 +616,7 @@ const Meeting = () => {
           </AnimatePresence>
         </div>
 
-        {/* Controls Bar */}
+        {/* Controls Bar - Responsive */}
         <ControlsBar
           isMuted={isMuted}
           isVideoOff={isVideoOff}
@@ -632,6 +632,7 @@ const Meeting = () => {
           onAddReaction={addReaction}
           onToggleAI={() => setShowAI(!showAI)}
           onToggleWhiteboard={() => setShowWhiteboard(!showWhiteboard)}
+          isMobile={isMobile}
         />
       </div>
     </div>

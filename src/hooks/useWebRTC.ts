@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 
 export const useWebRTC = () => {
@@ -18,6 +17,7 @@ export const useWebRTC = () => {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
+          autoGainControl: true,
           sampleRate: 44100
         },
         video: audioOnly ? false : {
@@ -28,11 +28,21 @@ export const useWebRTC = () => {
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      // Ensure local audio is muted for local playback to prevent feedback
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) {
+        // Keep the track enabled for transmission but ensure local audio doesn't play back
+        audioTrack.enabled = true;
+      }
+      
       setLocalStream(stream);
       setIsVideoOff(audioOnly);
 
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
+        // Ensure the local video element is muted to prevent audio feedback
+        localVideoRef.current.muted = true;
       }
 
       console.log('WebRTC initialized successfully');
@@ -190,6 +200,14 @@ export const useWebRTC = () => {
     setIsScreenSharing(false);
   }, [localStream]);
 
+  // Effect to ensure video elements are properly configured
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+      localVideoRef.current.muted = true; // Always mute local video to prevent feedback
+    }
+  }, [localStream]);
+
   return {
     localStream,
     remoteStreams,
@@ -202,6 +220,7 @@ export const useWebRTC = () => {
     stopScreenShare,
     initializeWebRTC,
     cleanupWebRTC,
-    createPeerConnection
+    createPeerConnection,
+    localVideoRef
   };
 };
