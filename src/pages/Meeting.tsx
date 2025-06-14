@@ -259,14 +259,25 @@ const Meeting = () => {
       setMeeting(data);
       
       // Check if user can join this meeting
-      const { data: joinCheckData } = await supabase
+      const { data: joinCheckData, error: joinError } = await supabase
         .rpc('can_join_meeting', {
           meeting_code_param: meetingCode,
           user_id_param: user?.id
         });
 
+      if (joinError) {
+        console.error('Error checking join permission:', joinError);
+        toast({
+          title: "Error",
+          description: "Unable to verify meeting access",
+          variant: "destructive"
+        });
+        navigate('/dashboard');
+        return;
+      }
+
       // Type cast the response to our expected interface
-      const joinCheck = joinCheckData as CanJoinMeetingResponse;
+      const joinCheck = joinCheckData as unknown as CanJoinMeetingResponse;
 
       if (!joinCheck?.can_join) {
         toast({

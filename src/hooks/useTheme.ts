@@ -13,9 +13,15 @@ export const useTheme = () => {
 
   const applyTheme = (newTheme: 'light' | 'dark') => {
     const root = document.documentElement;
+    const body = document.body;
     
     if (newTheme === 'dark') {
       root.classList.add('dark');
+      root.classList.remove('light');
+      body.classList.remove('light');
+      body.classList.add('dark-mode-enhanced');
+      body.classList.remove('light-mode-enhanced');
+      
       // Premium dark theme CSS variables
       root.style.setProperty('--background-primary', '#0a0a0a');
       root.style.setProperty('--background-secondary', '#111111');
@@ -25,7 +31,12 @@ export const useTheme = () => {
       root.style.setProperty('--surface-tertiary', '#333333');
     } else {
       root.classList.remove('dark');
-      // Light theme CSS variables
+      root.classList.add('light');
+      body.classList.add('light');
+      body.classList.remove('dark-mode-enhanced');
+      body.classList.add('light-mode-enhanced');
+      
+      // Premium light theme CSS variables
       root.style.setProperty('--background-primary', '#ffffff');
       root.style.setProperty('--background-secondary', '#f8fafc');
       root.style.setProperty('--background-tertiary', '#f1f5f9');
@@ -35,9 +46,9 @@ export const useTheme = () => {
     }
     
     // Common theme variables
-    root.style.setProperty('--accent-blue', '#0066ff');
-    root.style.setProperty('--accent-green', '#00ff88');
-    root.style.setProperty('--accent-purple', '#8b5cf6');
+    root.style.setProperty('--accent-blue', newTheme === 'light' ? '#3b82f6' : '#0066ff');
+    root.style.setProperty('--accent-green', newTheme === 'light' ? '#22c55e' : '#00ff88');
+    root.style.setProperty('--accent-purple', newTheme === 'light' ? '#9333ea' : '#8b5cf6');
     root.style.setProperty('--text-primary', newTheme === 'dark' ? '#ffffff' : '#1e293b');
     root.style.setProperty('--text-secondary', newTheme === 'dark' ? '#e5e5e5' : '#475569');
     root.style.setProperty('--text-muted', newTheme === 'dark' ? '#9ca3af' : '#64748b');

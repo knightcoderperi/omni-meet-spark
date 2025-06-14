@@ -1,17 +1,22 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gamepad2, Trophy, Star, RotateCcw, Clock } from 'lucide-react';
+import { Gamepad2, Trophy, Star, RotateCcw, Clock, Grid3X3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import DotsAndBoxesGame from './DotsAndBoxesGame';
 
 interface LobbyGameProps {
+  meetingId: string;
   isVisible: boolean;
   waitingForApproval?: boolean;
 }
 
-const LobbyGame: React.FC<LobbyGameProps> = ({ isVisible, waitingForApproval = false }) => {
-  const [gameType, setGameType] = useState<'memory' | 'math' | 'riddle'>('memory');
+const LobbyGame: React.FC<LobbyGameProps> = ({ 
+  meetingId,
+  isVisible, 
+  waitingForApproval = false 
+}) => {
+  const [gameType, setGameType] = useState<'memory' | 'math' | 'riddle' | 'dotsboxes'>('dotsboxes');
   const [score, setScore] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -39,13 +44,13 @@ const LobbyGame: React.FC<LobbyGameProps> = ({ isVisible, waitingForApproval = f
   const [riddleAnswer, setRiddleAnswer] = useState('');
 
   useEffect(() => {
-    if (gameStarted && timeLeft > 0) {
+    if (gameStarted && timeLeft > 0 && gameType !== 'dotsboxes') {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (timeLeft === 0) {
+    } else if (timeLeft === 0 && gameType !== 'dotsboxes') {
       setGameOver(true);
     }
-  }, [gameStarted, timeLeft]);
+  }, [gameStarted, timeLeft, gameType]);
 
   const initializeMemoryGame = () => {
     const symbols = ['🎵', '🎨', '🎭', '🎪', '🎯', '🎲', '🎸', '🎺'];
@@ -176,6 +181,87 @@ const LobbyGame: React.FC<LobbyGameProps> = ({ isVisible, waitingForApproval = f
 
   if (!isVisible) return null;
 
+  // If Dots and Boxes is selected, render the dedicated component
+  if (gameType === 'dotsboxes') {
+    return (
+      <div className="w-full max-w-4xl mx-auto space-y-4">
+        {/* Game Type Selector */}
+        <Card className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 backdrop-blur-xl border border-purple-500/20 p-4">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <Gamepad2 className="w-6 h-6 text-purple-400" />
+            <h3 className="text-xl font-bold text-white">
+              {waitingForApproval ? 'While You Wait...' : 'Lobby Games'}
+            </h3>
+          </div>
+
+          {waitingForApproval && (
+            <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
+              <div className="flex items-center justify-center space-x-2 text-yellow-400">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm">Waiting for host approval</span>
+              </div>
+              <p className="text-xs text-yellow-300 mt-1 text-center">Play some games to pass the time!</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Button
+              onClick={() => setGameType('dotsboxes')}
+              variant={gameType === 'dotsboxes' ? 'default' : 'outline'}
+              className={`text-xs py-2 ${
+                gameType === 'dotsboxes' 
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white' 
+                  : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+              }`}
+            >
+              <Grid3X3 className="w-3 h-3 mr-1" />
+              Dots & Boxes
+            </Button>
+            <Button
+              onClick={() => setGameType('memory')}
+              variant={gameType === 'memory' ? 'default' : 'outline'}
+              className={`text-xs py-2 ${
+                gameType === 'memory' 
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
+                  : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+              }`}
+            >
+              🧠 Memory
+            </Button>
+            <Button
+              onClick={() => setGameType('math')}
+              variant={gameType === 'math' ? 'default' : 'outline'}
+              className={`text-xs py-2 ${
+                gameType === 'math' 
+                  ? 'bg-gradient-to-r from-green-500 to-blue-600 text-white' 
+                  : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+              }`}
+            >
+              🔢 Math
+            </Button>
+            <Button
+              onClick={() => setGameType('riddle')}
+              variant={gameType === 'riddle' ? 'default' : 'outline'}
+              className={`text-xs py-2 ${
+                gameType === 'riddle' 
+                  ? 'bg-gradient-to-r from-orange-500 to-pink-600 text-white' 
+                  : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+              }`}
+            >
+              🧩 Riddles
+            </Button>
+          </div>
+        </Card>
+
+        <DotsAndBoxesGame 
+          meetingId={meetingId}
+          isVisible={true}
+          waitingForApproval={waitingForApproval}
+        />
+      </div>
+    );
+  }
+
   return (
     <AnimatePresence>
       <motion.div
@@ -210,6 +296,13 @@ const LobbyGame: React.FC<LobbyGameProps> = ({ isVisible, waitingForApproval = f
                 </p>
                 
                 <div className="grid grid-cols-1 gap-3">
+                  <Button
+                    onClick={() => setGameType('dotsboxes')}
+                    className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white py-3"
+                  >
+                    <Grid3X3 className="w-4 h-4 mr-2" />
+                    🎯 Dots & Boxes (Multiplayer)
+                  </Button>
                   <Button
                     onClick={() => startGame('memory')}
                     className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3"

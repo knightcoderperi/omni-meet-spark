@@ -29,10 +29,16 @@ const ShareMeetingButton: React.FC<ShareMeetingButtonProps> = ({
   const isMobile = useIsMobile();
 
   const getMeetingUrl = () => {
+    // For instant meetings, use the meeting code path
     if (meetingType === 'instant' && meetingData.code) {
       return `${window.location.origin}/meeting/${meetingData.code}`;
     }
-    return `${window.location.origin}/join?meeting=${meetingData.id}`;
+    // For scheduled meetings, provide a join link with meeting ID
+    if (meetingData.id) {
+      return `${window.location.origin}/meeting/${meetingData.code || meetingData.id}`;
+    }
+    // Fallback to current URL if no specific meeting data
+    return window.location.href;
   };
 
   const getShareText = () => {
@@ -40,7 +46,7 @@ const ShareMeetingButton: React.FC<ShareMeetingButtonProps> = ({
     const url = getMeetingUrl();
     
     if (meetingType === 'instant') {
-      return `${baseText}\n\nJoin here: ${url}\nMeeting Code: ${meetingData.code}`;
+      return `${baseText}\n\nJoin here: ${url}\nMeeting Code: ${meetingData.code || 'N/A'}`;
     } else {
       const time = meetingData.scheduledTime ? new Date(meetingData.scheduledTime).toLocaleString() : 'TBD';
       return `${baseText}\n\nScheduled for: ${time}\nJoin here: ${url}`;
@@ -49,17 +55,38 @@ const ShareMeetingButton: React.FC<ShareMeetingButtonProps> = ({
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(getMeetingUrl());
+      const url = getMeetingUrl();
+      await navigator.clipboard.writeText(url);
       toast({
         title: "Link copied!",
         description: "Meeting link has been copied to clipboard"
       });
     } catch (error) {
-      toast({
-        title: "Copy failed",
-        description: "Unable to copy to clipboard",
-        variant: "destructive"
-      });
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = getMeetingUrl();
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        document.execCommand('copy');
+        toast({
+          title: "Link copied!",
+          description: "Meeting link has been copied to clipboard"
+        });
+      } catch (err) {
+        toast({
+          title: "Copy failed",
+          description: "Unable to copy to clipboard",
+          variant: "destructive"
+        });
+      }
+      
+      document.body.removeChild(textArea);
     }
   };
 
@@ -92,22 +119,22 @@ const ShareMeetingButton: React.FC<ShareMeetingButtonProps> = ({
     <div className={`relative ${className}`}>
       <Button
         onClick={() => setShowShareOptions(!showShareOptions)}
-        className="btn-primary-premium flex items-center space-x-2 px-4 py-2"
+        className="btn-primary-premium flex items-center space-x-2 px-3 py-2 sm:px-4 sm:py-2"
         size={isMobile ? "sm" : "default"}
       >
         <Share2 className="w-4 h-4" />
-        <span>Share</span>
+        <span className="hidden sm:inline">Share</span>
       </Button>
 
       {showShareOptions && (
         <motion.div
-          className="absolute top-full mt-2 right-0 z-50"
+          className={`absolute top-full mt-2 right-0 z-50 ${isMobile ? 'w-72' : 'w-64'}`}
           initial={{ opacity: 0, scale: 0.9, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: -10 }}
           transition={{ duration: 0.2 }}
         >
-          <Card className="glass-card p-4 w-64 shadow-2xl border border-white/10">
+          <Card className="glass-card p-4 shadow-2xl border border-white/10">
             <div className="mb-4">
               <div className="flex items-center space-x-2 mb-2">
                 {meetingType === 'instant' ? (
@@ -177,6 +204,9 @@ const ShareMeetingButton: React.FC<ShareMeetingButtonProps> = ({
               <p className="text-xs text-slate-600 dark:text-slate-400">
                 Share this link to invite others to join your meeting
               </p>
+              <div className="mt-2 p-2 bg-slate-100/50 dark:bg-slate-800/50 rounded text-xs font-mono break-all">
+                {getMeetingUrl()}
+              </div>
             </div>
           </Card>
         </motion.div>
