@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -49,6 +50,25 @@ const VideoTile: React.FC<VideoTileProps> = ({
       if (isLocal || participant.id === 'self') {
         videoRef.current.muted = true;
       }
+      
+      // Optimize video settings to reduce lag
+      videoRef.current.playsInline = true;
+      videoRef.current.preload = 'metadata';
+      
+      // Add event listeners for better video handling
+      const handleLoadedData = () => {
+        if (videoRef.current) {
+          videoRef.current.play().catch(console.error);
+        }
+      };
+      
+      videoRef.current.addEventListener('loadeddata', handleLoadedData);
+      
+      return () => {
+        if (videoRef.current) {
+          videoRef.current.removeEventListener('loadeddata', handleLoadedData);
+        }
+      };
     }
   }, [participant.stream, isLocal, participant.id]);
 
@@ -90,7 +110,21 @@ const VideoTile: React.FC<VideoTileProps> = ({
   };
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    if (!name || name.trim() === '') return 'U';
+    
+    const words = name.trim().split(' ');
+    if (words.length === 1) {
+      // For single word names, take first 2 characters or first 4 characters if name is long
+      const singleName = words[0];
+      if (singleName.length <= 4) {
+        return singleName.substring(0, 2).toUpperCase();
+      } else {
+        return singleName.substring(0, 4).toUpperCase();
+      }
+    } else {
+      // For multiple words, take first letter of each word (max 2)
+      return words.slice(0, 2).map(word => word[0]).join('').toUpperCase();
+    }
   };
 
   return (
@@ -113,7 +147,7 @@ const VideoTile: React.FC<VideoTileProps> = ({
         backdrop-blur-xl border-slate-200/50 dark:border-white/10
         hover:shadow-xl hover:shadow-blue-500/20 dark:hover:shadow-purple-500/20
       `}>
-        {/* Video Element */}
+        {/* Video Element with optimizations */}
         {!participant.isVideoOff && (
           <video
             ref={videoRef}
@@ -121,15 +155,19 @@ const VideoTile: React.FC<VideoTileProps> = ({
             playsInline
             muted={isLocal || participant.id === 'self'}
             className="w-full h-full object-cover"
+            style={{
+              transform: isLocal ? 'scaleX(-1)' : 'none', // Mirror local video
+              WebkitTransform: isLocal ? 'scaleX(-1)' : 'none'
+            }}
           />
         )}
 
-        {/* Avatar for video off */}
+        {/* Avatar for video off with improved initials */}
         {participant.isVideoOff && (
           <div className="w-full h-full flex items-center justify-center">
             <motion.div 
               className={`bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg ${
-                isMobile ? 'w-12 h-12 text-lg' : 'w-16 h-16 text-xl'
+                isMobile ? 'w-16 h-16 text-lg' : 'w-20 h-20 text-xl'
               }`}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}

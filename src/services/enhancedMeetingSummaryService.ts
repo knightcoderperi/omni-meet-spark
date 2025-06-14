@@ -71,12 +71,97 @@ export class EnhancedMeetingSummaryService {
       // Save analysis to database
       await this.saveAnalysisToDatabase(analysis);
 
-      // Send task assignment emails
-      await this.sendTaskAssignmentEmails(extractedTasks, meeting);
-
       return analysis;
     } catch (error) {
       console.error('Error generating comprehensive summary:', error);
+      throw error;
+    }
+  }
+
+  async sendPersonalizedEmails(meetingId: string, analysis: MeetingAnalysis): Promise<void> {
+    try {
+      console.log('Sending personalized emails for meeting:', meetingId);
+
+      // Get all participants with their email addresses from user accounts
+      const { data: participants, error: participantsError } = await supabase
+        .from('meeting_participants')
+        .select(`
+          *,
+          user_id,
+          guest_name,
+          email
+        `)
+        .eq('meeting_id', meetingId);
+
+      if (participantsError) {
+        throw new Error('Failed to fetch participants');
+      }
+
+      // Get user emails from auth.users for registered users
+      const participantEmails = new Map();
+      
+      for (const participant of participants || []) {
+        if (participant.user_id) {
+          // Get email from user profile or auth
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', participant.user_id)
+            .single();
+          
+          if (!userError && userData?.email) {
+            participantEmails.set(participant.guest_name || 'Unknown', userData.email);
+          } else {
+            // Fallback to participant email if available
+            if (participant.email) {
+              participantEmails.set(participant.guest_name || 'Unknown', participant.email);
+            }
+          }
+        } else if (participant.email) {
+          // Guest participant with email
+          participantEmails.set(participant.guest_name || 'Unknown', participant.email);
+        }
+      }
+
+      // Get meeting details
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .select('*')
+        .eq('id', meetingId)
+        .single();
+
+      if (meetingError || !meeting) {
+        throw new Error('Meeting not found');
+      }
+
+      // Send personalized emails to each participant
+      const emailPromises = Array.from(participantEmails.entries()).map(async ([participantName, email]) => {
+        const userTasks = analysis.action_items.filter(task => task.assigned_to === participantName);
+        
+        try {
+          await supabase.functions.invoke('send-personalized-meeting-email', {
+            body: {
+              recipientName: participantName,
+              recipientEmail: email,
+              meetingTitle: meeting.title,
+              meetingDate: new Date(meeting.created_at).toLocaleDateString(),
+              meetingSummary: analysis.summary,
+              keyDecisions: analysis.key_decisions,
+              assignedTasks: userTasks,
+              hasNoTasks: userTasks.length === 0,
+              meetingUrl: window.location.origin + `/meeting/${meeting.meeting_code}`
+            }
+          });
+          console.log(`Personalized email sent to ${participantName} (${email})`);
+        } catch (error) {
+          console.error(`Failed to send email to ${participantName}:`, error);
+        }
+      });
+
+      await Promise.allSettled(emailPromises);
+      console.log('All personalized emails sent');
+    } catch (error) {
+      console.error('Error sending personalized emails:', error);
       throw error;
     }
   }
@@ -164,40 +249,6 @@ export class EnhancedMeetingSummaryService {
       console.error('Error saving analysis to database:', error);
       throw error;
     }
-  }
-
-  private async sendTaskAssignmentEmails(tasks: any[], meeting: any): Promise<void> {
-    console.log('Preparing to send task assignment emails...');
-    
-    // Group tasks by assignee
-    const tasksByPerson: Record<string, any[]> = {};
-    tasks.forEach(task => {
-      if (!tasksByPerson[task.assigned_to]) {
-        tasksByPerson[task.assigned_to] = [];
-      }
-      tasksByPerson[task.assigned_to].push(task);
-    });
-
-    // Send emails for each person
-    const emailPromises = Object.entries(tasksByPerson).map(async ([person, personTasks]) => {
-      try {
-        await supabase.functions.invoke('send-task-assignment-email', {
-          body: {
-            recipientName: person,
-            recipientEmail: `${person.toLowerCase().replace(' ', '.')}@company.com`, // You'll need to implement proper email lookup
-            meetingTitle: meeting.title,
-            meetingDate: new Date(meeting.created_at).toLocaleDateString(),
-            tasks: personTasks,
-            meetingUrl: window.location.origin + `/meeting/${meeting.meeting_code}`
-          }
-        });
-        console.log(`Task assignment email sent to ${person}`);
-      } catch (error) {
-        console.error(`Failed to send email to ${person}:`, error);
-      }
-    });
-
-    await Promise.allSettled(emailPromises);
   }
 }
 

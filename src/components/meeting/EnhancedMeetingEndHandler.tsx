@@ -28,7 +28,7 @@ const EnhancedMeetingEndHandler: React.FC<EnhancedMeetingEndHandlerProps> = ({
     try {
       toast({
         title: "🎯 Meeting Ended",
-        description: "Starting comprehensive analysis and task extraction...",
+        description: "Starting comprehensive analysis and sending personalized emails...",
       });
 
       console.log('Starting enhanced meeting analysis for:', meetingId);
@@ -38,9 +38,12 @@ const EnhancedMeetingEndHandler: React.FC<EnhancedMeetingEndHandlerProps> = ({
 
       console.log('Meeting analysis completed:', analysis);
 
+      // Send personalized emails to all participants
+      await enhancedMeetingSummaryService.sendPersonalizedEmails(meetingId, analysis);
+
       toast({
         title: "✅ Analysis Complete",
-        description: `Generated ${analysis.action_items.length} tasks and sent email notifications to assignees`,
+        description: `Generated ${analysis.action_items.length} tasks and sent personalized email summaries to all participants`,
       });
 
       // Notify parent component of analysis completion
@@ -50,8 +53,8 @@ const EnhancedMeetingEndHandler: React.FC<EnhancedMeetingEndHandlerProps> = ({
       // Show detailed results in a follow-up toast
       setTimeout(() => {
         toast({
-          title: "📊 Meeting Summary",
-          description: `${analysis.action_items.length} tasks assigned across ${Object.keys(analysis.task_breakdown).length} people. Priority: ${analysis.priority_distribution.High} High, ${analysis.priority_distribution.Medium} Medium, ${analysis.priority_distribution.Low} Low`,
+          title: "📊 Emails Sent",
+          description: `Personalized meeting summaries and task assignments sent to ${Object.keys(analysis.task_breakdown).length} participants`,
         });
       }, 2000);
 

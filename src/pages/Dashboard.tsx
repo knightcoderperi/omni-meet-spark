@@ -186,9 +186,9 @@ const Dashboard = () => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <img 
-                src="/lovable-uploads/4529ad4c-cec8-4635-98a5-14d2daac80e1.png" 
+                src="/lovable-uploads/2d81a553-9d58-4ba7-94bd-f014ebe9d554.png" 
                 alt="OmniMeet" 
-                className="h-10 w-auto object-contain filter brightness-0 invert"
+                className="h-10 w-auto object-contain"
               />
             </div>
 

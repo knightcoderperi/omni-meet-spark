@@ -25,7 +25,7 @@ import TaskGenerator from '@/components/meeting/TaskGenerator';
 import TranslationChatWidget from '@/components/meeting/TranslationChatWidget';
 import ShareLinkModal from '@/components/meeting/ShareLinkModal';
 import LayoutCustomizationPanel from '@/components/meeting/LayoutCustomizationPanel';
-import MeetingEndHandler from '@/components/meeting/MeetingEndHandler';
+import EnhancedMeetingEndHandler from '@/components/meeting/EnhancedMeetingEndHandler';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { useLayoutCustomization } from '@/hooks/useLayoutCustomization';
 import { useTheme } from '@/hooks/useTheme';
@@ -401,14 +401,14 @@ const Meeting = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 relative overflow-hidden">
-      {/* Meeting End Handler - triggers summary when meeting ends */}
-      <MeetingEndHandler
+      {/* Enhanced Meeting End Handler - triggers personalized email sending */}
+      <EnhancedMeetingEndHandler
         meetingId={meeting?.id || ''}
         isActive={meeting?.is_active || false}
         onMeetingEnd={() => {
           toast({
             title: "Meeting Summary Sent",
-            description: "All attendees will receive an email with the meeting summary",
+            description: "All participants will receive personalized email summaries with their assigned tasks",
           });
         }}
       />
@@ -532,7 +532,7 @@ const Meeting = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 md:space-x-6">
               <motion.img 
-                src="/lovable-uploads/7d88fd56-d3fa-4677-928c-8d654baae527.png" 
+                src="/lovable-uploads/2d81a553-9d58-4ba7-94bd-f014ebe9d554.png" 
                 alt="OmniMeet" 
                 className="h-6 md:h-8 w-auto object-contain"
                 whileHover={{ scale: 1.05 }}
