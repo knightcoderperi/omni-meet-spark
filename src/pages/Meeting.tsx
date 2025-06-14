@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -54,6 +55,13 @@ interface Participant {
   stream?: MediaStream;
 }
 
+interface Reaction {
+  id: string;
+  emoji: string;
+  x: number;
+  y: number;
+}
+
 // Type for the response from can_join_meeting RPC function
 interface CanJoinMeetingResponse {
   can_join: boolean;
@@ -77,6 +85,31 @@ const Meeting = () => {
   const [hasJoined, setHasJoined] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantName, setParticipantName] = useState('');
+  
+  // Meeting timing states
+  const [meetingDuration, setMeetingDuration] = useState(0);
+  const [hostJoinTime, setHostJoinTime] = useState<number | null>(null);
+  const [userJoinTime, setUserJoinTime] = useState(0);
+  
+  // UI panel states
+  const [showChat, setShowChat] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [showAI, setShowAI] = useState(false);
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showLayoutPanel, setShowLayoutPanel] = useState(false);
+  const [showTaskGenerator, setShowTaskGenerator] = useState(false);
+  const [showTranslationChat, setShowTranslationChat] = useState(false);
+  const [showLateJoinerWelcome, setShowLateJoinerWelcome] = useState(false);
+  const [showCatchMeUp, setShowCatchMeUp] = useState(false);
+  
+  // Meeting interaction states
+  const [isRecording, setIsRecording] = useState(false);
+  const [handRaised, setHandRaised] = useState(false);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
+  
+  // Catch-up functionality states
+  const [catchMeUpShown, setCatchMeUpShown] = useState(false);
   
   const {
     localStream,
