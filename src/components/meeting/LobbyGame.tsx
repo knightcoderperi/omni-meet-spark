@@ -234,7 +234,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
               Dots & Boxes
             </Button>
             <Button
-              onClick={() => setGameType('memory')}
+              onClick={() => startGame('memory')}
               variant={gameType === 'memory' ? 'default' : 'outline'}
               className={`text-xs py-2 theme-button ${
                 gameType === 'memory' 
@@ -245,7 +245,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
               🧠 Memory
             </Button>
             <Button
-              onClick={() => setGameType('math')}
+              onClick={() => startGame('math')}
               variant={gameType === 'math' ? 'default' : 'outline'}
               className={`text-xs py-2 theme-button ${
                 gameType === 'math' 
@@ -256,7 +256,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
               🔢 Math
             </Button>
             <Button
-              onClick={() => setGameType('riddle')}
+              onClick={() => startGame('riddle')}
               variant={gameType === 'riddle' ? 'default' : 'outline'}
               className={`text-xs py-2 theme-button ${
                 gameType === 'riddle' 

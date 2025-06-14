@@ -167,7 +167,7 @@
   }
 
   .glass-card.light {
-    @apply bg-white/96 backdrop-blur-xl border border-orange-200/30 rounded-3xl shadow-2xl;
+    @apply bg-white/95 backdrop-blur-xl border border-orange-200/30 rounded-3xl shadow-2xl;
     backdrop-filter: blur(20px) saturate(180%);
     background: linear-gradient(145deg, rgba(255,255,255,0.98), rgba(254,254,254,0.92));
     box-shadow: 
@@ -336,7 +336,7 @@
   }
 
   .input-premium.light:focus {
-    @apply bg-white/98;
+    @apply bg-white/95;
     box-shadow: 
       0 0 20px rgba(251, 146, 60, 0.2),
       0 4px 6px -1px rgba(239, 68, 68, 0.1);
