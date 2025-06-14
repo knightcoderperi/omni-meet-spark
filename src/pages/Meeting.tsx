@@ -54,6 +54,16 @@ interface Participant {
   stream?: MediaStream;
 }
 
+// Type for the response from can_join_meeting RPC function
+interface CanJoinMeetingResponse {
+  can_join: boolean;
+  reason?: string;
+  meeting_id?: string;
+  is_host?: boolean;
+  requires_approval?: boolean;
+  password_required?: boolean;
+}
+
 const Meeting = () => {
   const { meetingCode } = useParams();
   const navigate = useNavigate();
@@ -249,11 +259,14 @@ const Meeting = () => {
       setMeeting(data);
       
       // Check if user can join this meeting
-      const { data: joinCheck } = await supabase
+      const { data: joinCheckData } = await supabase
         .rpc('can_join_meeting', {
           meeting_code_param: meetingCode,
           user_id_param: user?.id
         });
+
+      // Type cast the response to our expected interface
+      const joinCheck = joinCheckData as CanJoinMeetingResponse;
 
       if (!joinCheck?.can_join) {
         toast({
