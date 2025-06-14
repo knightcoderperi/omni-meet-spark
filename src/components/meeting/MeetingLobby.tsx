@@ -17,7 +17,7 @@ interface LobbyParticipant {
   guest_name?: string;
   email?: string;
   joined_lobby_at: string;
-  approval_status: 'pending' | 'approved' | 'rejected';
+  approval_status: 'pending' | 'approved' | 'denied';
   device_info?: any;
   network_quality?: any;
 }
@@ -90,7 +90,7 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
   const handleApproval = async (participantId: string, approve: boolean) => {
     setLoading(true);
     try {
-      const status = approve ? 'approved' : 'rejected';
+      const status = approve ? 'approved' : 'denied';
       
       const { error } = await supabase
         .from('lobby_queue')
