@@ -110,6 +110,7 @@ const Meeting = () => {
     if (meetingCode) {
       fetchMeeting();
       checkHostJoinTime();
+      setupParticipantSubscription();
     }
 
     const timer = setInterval(() => {
@@ -118,6 +119,81 @@ const Meeting = () => {
 
     return () => clearInterval(timer);
   }, [user, meetingCode, navigate]);
+
+  const setupParticipantSubscription = () => {
+    if (!meetingCode) return;
+
+    // Set up real-time subscription for participant updates
+    const channel = supabase
+      .channel(`meeting-participants-${meetingCode}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meeting_participants'
+        },
+        (payload) => {
+          console.log('Participant update:', payload);
+          // Refresh participants list when changes occur
+          fetchParticipants();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const fetchParticipants = async () => {
+    if (!meeting?.id) return;
+
+    try {
+      const { data: participantsData, error } = await supabase
+        .from('meeting_participants')
+        .select(`
+          id,
+          user_id,
+          guest_name,
+          email,
+          is_host,
+          status,
+          joined_at,
+          profiles:user_id (full_name)
+        `)
+        .eq('meeting_id', meeting.id)
+        .in('status', ['approved', 'joined']);
+
+      if (error) {
+        console.error('Error fetching participants:', error);
+        return;
+      }
+
+      console.log('Fetched participants:', participantsData);
+
+      const formattedParticipants: Participant[] = participantsData.map((p: any) => ({
+        id: p.user_id || p.id,
+        name: p.profiles?.full_name || p.guest_name || p.email || 'Anonymous',
+        isHost: p.is_host,
+        isMuted: false,
+        isVideoOff: false,
+        handRaised: false,
+        stream: p.user_id === user?.id ? localStream : undefined
+      }));
+
+      setParticipants(formattedParticipants);
+      
+      // Update meeting participants count
+      await supabase
+        .from('meetings')
+        .update({ participants_count: formattedParticipants.length })
+        .eq('id', meeting.id);
+
+    } catch (error) {
+      console.error('Error in fetchParticipants:', error);
+    }
+  };
 
   const checkHostJoinTime = async () => {
     if (!meetingCode) return;
@@ -172,13 +248,38 @@ const Meeting = () => {
 
       setMeeting(data);
       
+      // Check if user can join this meeting
+      const { data: joinCheck } = await supabase
+        .rpc('can_join_meeting', {
+          meeting_code_param: meetingCode,
+          user_id_param: user?.id
+        });
+
+      if (!joinCheck?.can_join) {
+        toast({
+          title: "Cannot join meeting",
+          description: joinCheck?.reason || "Unable to join meeting",
+          variant: "destructive"
+        });
+        navigate('/dashboard');
+        return;
+      }
+
+      // Add or update participant record
       await supabase
         .from('meeting_participants')
         .upsert({
           meeting_id: data.id,
           user_id: user?.id,
-          is_host: data.host_id === user?.id
+          is_host: data.host_id === user?.id,
+          status: 'joined',
+          joined_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,meeting_id'
         });
+
+      // Fetch all participants
+      fetchParticipants();
 
     } catch (error) {
       console.error('Error fetching meeting:', error);
@@ -199,60 +300,39 @@ const Meeting = () => {
       
       const isHost = meeting?.host_id === user?.id;
       
-      // If user is host, record their join time
       if (isHost) {
         setHostJoinTime(joinTime);
-        // Update host join time in database
-        if (meeting?.id) {
-          await supabase
-            .from('meeting_participants')
-            .upsert({
-              meeting_id: meeting.id,
-              user_id: user?.id,
-              is_host: true,
-              joined_at: new Date().toISOString(),
-              status: 'joined'
-            });
-        }
       } else {
-        // For non-host users, check if they're joining after host and show catch me up
         if (hostJoinTime !== null && joinTime > hostJoinTime && !catchMeUpShown) {
           setCatchMeUpShown(true);
           setTimeout(() => {
             setShowLateJoinerWelcome(true);
           }, 2000);
         }
-        
-        // Update participant join time in database
-        if (meeting?.id) {
-          await supabase
-            .from('meeting_participants')
-            .upsert({
-              meeting_id: meeting.id,
-              user_id: user?.id,
-              is_host: false,
-              joined_at: new Date().toISOString(),
-              status: 'joined'
-            });
-        }
       }
       
-      // Use optimized tile size based on layout settings
+      // Update participant status to joined
+      if (meeting?.id) {
+        await supabase
+          .from('meeting_participants')
+          .upsert({
+            meeting_id: meeting.id,
+            user_id: user?.id,
+            is_host: isHost,
+            status: 'joined',
+            joined_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,meeting_id'
+          });
+      }
+      
+      // Initialize WebRTC with proper participant handling
       const tileSize = settings.compactMode ? 'small' : settings.gridSize;
       await initializeWebRTC(audioOnly, tileSize);
       setHasJoined(true);
       
-      const newParticipant: Participant = {
-        id: user?.id || 'self',
-        name: userName,
-        isHost: meeting?.host_id === user?.id,
-        isMuted: false,
-        isVideoOff: audioOnly,
-        handRaised: false,
-        stream: localStream
-      };
-      
-      setParticipants([newParticipant]);
+      // Refresh participants list
+      fetchParticipants();
       
       toast({
         title: "Joined meeting",
@@ -272,10 +352,13 @@ const Meeting = () => {
     cleanupWebRTC();
     
     if (meeting && user) {
-      // Mark meeting as ended for current user
+      // Mark participant as left
       await supabase
         .from('meeting_participants')
-        .update({ left_at: new Date().toISOString() })
+        .update({ 
+          left_at: new Date().toISOString(),
+          status: 'left'
+        })
         .eq('meeting_id', meeting.id)
         .eq('user_id', user.id);
 
@@ -661,27 +744,36 @@ const Meeting = () => {
                 tileSize={getTileSize()}
               />
               
-              {Array.from(remoteStreams.entries()).map(([peerId, stream]) => (
-                <OptimizedVideoTile
-                  key={peerId}
-                  participant={{
-                    id: peerId,
-                    name: `Participant ${peerId}`,
-                    isHost: false,
-                    isMuted: false,
-                    isVideoOff: false,
-                    handRaised: false,
-                    stream
-                  }}
-                  isLocal={false}
-                  showNames={settings.showParticipantNames}
-                  showQuality={settings.showConnectionQuality}
-                  enableAnimations={settings.enableAnimations}
-                  tileSize={getTileSize()}
-                />
-              ))}
+              {/* Render remote participants from remoteStreams */}
+              {Array.from(remoteStreams.entries()).map(([peerId, stream]) => {
+                const participant = participants.find(p => p.id === peerId) || {
+                  id: peerId,
+                  name: `Participant ${peerId.slice(0, 8)}`,
+                  isHost: false,
+                  isMuted: false,
+                  isVideoOff: false,
+                  handRaised: false,
+                  stream
+                };
+
+                return (
+                  <OptimizedVideoTile
+                    key={peerId}
+                    participant={{
+                      ...participant,
+                      stream
+                    }}
+                    isLocal={false}
+                    showNames={settings.showParticipantNames}
+                    showQuality={settings.showConnectionQuality}
+                    enableAnimations={settings.enableAnimations}
+                    tileSize={getTileSize()}
+                  />
+                );
+              })}
               
-              {!isMobile && !settings.compactMode && Array.from({ length: Math.max(0, 3 - remoteStreams.size) }).map((_, i) => (
+              {/* Show placeholder tiles for empty spaces */}
+              {!isMobile && !settings.compactMode && Array.from({ length: Math.max(0, 6 - remoteStreams.size) }).map((_, i) => (
                 <motion.div
                   key={`placeholder-${i}`}
                   className="relative bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-800/80 dark:to-slate-900/80 backdrop-blur-xl rounded-2xl border-2 border-dashed border-slate-300/50 dark:border-cyan-500/30 min-h-[150px] md:min-h-[200px] flex items-center justify-center"

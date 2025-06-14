@@ -46,7 +46,6 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
     
     fetchPendingParticipants();
     
-    // Set up real-time subscription for pending participants
     const channel = supabase
       .channel('lobby-updates')
       .on(
@@ -108,13 +107,13 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
 
       if (error) throw error;
 
-      // If approved, also add to meeting_participants
+      // If approved, add to meeting_participants
       if (action === 'approved') {
         const entry = pendingParticipants.find(p => p.id === entryId);
         if (entry) {
           const { error: participantError } = await supabase
             .from('meeting_participants')
-            .insert({
+            .upsert({
               meeting_id: meetingId,
               user_id: entry.user_id,
               guest_name: entry.guest_name,
@@ -122,7 +121,11 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
               status: 'approved',
               approved_by: user?.id,
               approved_at: new Date().toISOString(),
-              device_info: entry.device_info
+              device_info: entry.device_info,
+              is_host: false
+            }, {
+              onConflict: entry.user_id ? 'user_id,meeting_id' : 'guest_name,meeting_id',
+              ignoreDuplicates: false
             });
 
           if (participantError) {
@@ -138,7 +141,6 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
         description: `${participant?.guest_name || participant?.email || 'Participant'} has been ${action}`,
       });
 
-      // Clear host notes for this entry
       setHostNotes(prev => {
         const newNotes = { ...prev };
         delete newNotes[entryId];
@@ -158,6 +160,7 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
 
   const approveAll = async () => {
     try {
+      // First, update all pending entries in lobby_queue
       const { error } = await supabase
         .from('lobby_queue')
         .update({ 
@@ -170,20 +173,30 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
 
       if (error) throw error;
 
-      // Add all pending participants to meeting_participants
-      for (const entry of pendingParticipants) {
-        await supabase
+      // Then add all pending participants to meeting_participants
+      const participantInserts = pendingParticipants.map(entry => ({
+        meeting_id: meetingId,
+        user_id: entry.user_id,
+        guest_name: entry.guest_name,
+        email: entry.email,
+        status: 'approved',
+        approved_by: user?.id,
+        approved_at: new Date().toISOString(),
+        device_info: entry.device_info,
+        is_host: false
+      }));
+
+      if (participantInserts.length > 0) {
+        const { error: insertError } = await supabase
           .from('meeting_participants')
-          .insert({
-            meeting_id: meetingId,
-            user_id: entry.user_id,
-            guest_name: entry.guest_name,
-            email: entry.email,
-            status: 'approved',
-            approved_by: user?.id,
-            approved_at: new Date().toISOString(),
-            device_info: entry.device_info
+          .upsert(participantInserts, {
+            onConflict: 'user_id,meeting_id',
+            ignoreDuplicates: true
           });
+
+        if (insertError) {
+          console.error('Error adding participants:', insertError);
+        }
       }
 
       toast({
@@ -223,7 +236,6 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
       >
         <Card className="bg-gradient-to-br from-white/95 to-slate-100/95 dark:from-slate-900/95 dark:to-black/95 backdrop-blur-xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10">
           <div className="p-6">
-            {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <Shield className="w-5 h-5 text-cyan-500" />
@@ -238,7 +250,6 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
               </div>
             </div>
 
-            {/* Pending Participants */}
             <div className="space-y-3 mb-4 max-h-80 overflow-y-auto">
               {pendingParticipants.map((participant, index) => (
                 <motion.div
@@ -268,7 +279,6 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
                       </div>
                     </div>
 
-                    {/* Host Notes Input */}
                     <div className="flex items-center space-x-2">
                       <MessageSquare className="w-4 h-4 text-slate-400" />
                       <input
@@ -283,7 +293,6 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
                       />
                     </div>
                     
-                    {/* Action Buttons */}
                     <div className="flex space-x-2">
                       <motion.button
                         onClick={() => handleParticipantAction(participant.id, 'approved')}
@@ -308,7 +317,6 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
               ))}
             </div>
 
-            {/* Actions */}
             <div className="flex space-x-2">
               <Button
                 onClick={approveAll}

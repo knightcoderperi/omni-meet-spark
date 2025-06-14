@@ -74,7 +74,6 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
         throw joinError;
       }
 
-      // Cast the response to our interface with proper type conversion
       const joinCheck = joinCheckData as unknown as CanJoinMeetingResponse;
 
       if (!joinCheck.can_join) {
@@ -116,12 +115,14 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
 
       // If user is host or meeting doesn't require approval, join directly
       if (joinCheck.is_host || !joinCheck.requires_approval) {
-        // Add to participants if not host
+        // For non-host users, add to participants table
         if (!joinCheck.is_host) {
           console.log('Adding participant to meeting');
+          
+          // Use upsert to handle cases where participant already exists
           const { error: participantError } = await supabase
             .from('meeting_participants')
-            .insert({
+            .upsert({
               meeting_id: joinCheck.meeting_id,
               user_id: user?.id || null,
               guest_name: user ? null : formData.guestName,
@@ -130,18 +131,25 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
               is_host: false,
               device_info: {
                 userAgent: navigator.userAgent,
-                platform: navigator.platform
+                platform: navigator.platform,
+                timestamp: new Date().toISOString()
               }
+            }, {
+              onConflict: user?.id ? 'user_id,meeting_id' : 'guest_name,meeting_id',
+              ignoreDuplicates: false
             });
 
           if (participantError) {
             console.error('Error adding participant:', participantError);
-            toast({
-              title: "Error joining meeting",
-              description: "Failed to add you as a participant",
-              variant: "destructive"
-            });
-            return;
+            // Don't block join if participant already exists
+            if (!participantError.message.includes('already exists')) {
+              toast({
+                title: "Error joining meeting",
+                description: "Failed to add you as a participant",
+                variant: "destructive"
+              });
+              return;
+            }
           }
         }
 
@@ -166,7 +174,8 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
           email: user?.email || null,
           device_info: {
             userAgent: navigator.userAgent,
-            platform: navigator.platform
+            platform: navigator.platform,
+            timestamp: new Date().toISOString()
           },
           network_quality: {
             connection: navigator.onLine ? 'online' : 'offline'
@@ -210,6 +219,11 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
           }
         )
         .subscribe();
+
+      // Cleanup channel when component unmounts
+      return () => {
+        supabase.removeChannel(channel);
+      };
 
     } catch (error) {
       console.error('Error joining meeting:', error);
@@ -256,7 +270,6 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
           <Card className="bg-gradient-to-br from-slate-900/95 to-black/95 backdrop-blur-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 overflow-hidden">
             {step === 'form' && (
               <>
-                {/* Header */}
                 <div className="relative p-8 pb-6">
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 opacity-50" />
                   <div className="relative flex items-center justify-between">
@@ -282,7 +295,6 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
                   </div>
                 </div>
 
-                {/* Content */}
                 <div className="p-8 pt-0 space-y-6">
                   <div className="space-y-4">
                     {!user && (
@@ -351,13 +363,11 @@ const JoinMeetingModal = ({ isOpen, onClose }: JoinMeetingModalProps) => {
                     </div>
                   </div>
 
-                  {/* Security Badge */}
                   <div className="flex items-center justify-center space-x-2 py-3 px-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl">
                     <Sparkles className="w-4 h-4 text-green-400" />
                     <span className="text-sm text-green-400 font-medium">End-to-end encrypted</span>
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="flex space-x-4 pt-2">
                     <motion.div
                       className="flex-1"
