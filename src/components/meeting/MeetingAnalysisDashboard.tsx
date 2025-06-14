@@ -9,16 +9,48 @@ import { Progress } from '@/components/ui/progress';
 import { CheckCircle, Clock, AlertTriangle, Users, Mail, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+interface TaskBreakdown {
+  [person: string]: number;
+}
+
+interface PriorityDistribution {
+  High: number;
+  Medium: number;
+  Low: number;
+}
+
+interface ActionItem {
+  task_id?: string;
+  description: string;
+  assigned_to: string;
+  assigned_by?: string;
+  priority: 'High' | 'Medium' | 'Low';
+  deadline?: string;
+  context: string;
+}
+
+interface AnalysisData {
+  meeting_id: string;
+  summary?: string;
+  key_decisions?: string[];
+  action_items?: ActionItem[];
+  participants?: string[];
+  next_meeting_date?: string | null;
+  task_breakdown?: TaskBreakdown;
+  priority_distribution?: PriorityDistribution;
+  estimated_completion_time?: number;
+}
+
 interface MeetingAnalysisDashboardProps {
   meetingId: string;
-  analysisData?: any;
+  analysisData?: AnalysisData;
 }
 
 const MeetingAnalysisDashboard: React.FC<MeetingAnalysisDashboardProps> = ({
   meetingId,
   analysisData
 }) => {
-  const [analysis, setAnalysis] = useState(analysisData || null);
+  const [analysis, setAnalysis] = useState<AnalysisData | null>(analysisData || null);
   const [isLoading, setIsLoading] = useState(!analysisData);
   const { toast } = useToast();
 
@@ -172,7 +204,7 @@ const MeetingAnalysisDashboard: React.FC<MeetingAnalysisDashboardProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {Object.entries(analysis.task_breakdown || {}).map(([person, count]) => (
+            {Object.entries(analysis.task_breakdown || {}).map(([person, count]: [string, number]) => (
               <div key={person} className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Users className="h-4 w-4" />
@@ -194,7 +226,7 @@ const MeetingAnalysisDashboard: React.FC<MeetingAnalysisDashboardProps> = ({
         <CardContent>
           <ScrollArea className="h-[400px]">
             <div className="space-y-4">
-              {analysis.action_items?.map((task: any, index: number) => (
+              {analysis.action_items?.map((task: ActionItem, index: number) => (
                 <div key={task.task_id || index} className="border rounded-lg p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
