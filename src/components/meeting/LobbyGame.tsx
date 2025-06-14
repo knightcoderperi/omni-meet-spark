@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gamepad2, Trophy, Star, RotateCcw, Clock, Grid3X3 } from 'lucide-react';
@@ -11,12 +12,14 @@ interface LobbyGameProps {
   waitingForApproval?: boolean;
 }
 
+type GameType = 'memory' | 'math' | 'riddle' | 'dotsboxes';
+
 const LobbyGame: React.FC<LobbyGameProps> = ({ 
   meetingId,
   isVisible, 
   waitingForApproval = false 
 }) => {
-  const [gameType, setGameType] = useState<'memory' | 'math' | 'riddle' | 'dotsboxes'>('dotsboxes');
+  const [gameType, setGameType] = useState<GameType>('dotsboxes');
   const [score, setScore] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -95,7 +98,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
     setMathQuestion({ question, answer });
   };
 
-  const startGame = (type: 'memory' | 'math' | 'riddle') => {
+  const startGame = (type: Exclude<GameType, 'dotsboxes'>) => {
     setGameType(type);
     setGameStarted(true);
     setScore(0);
