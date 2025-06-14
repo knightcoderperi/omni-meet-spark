@@ -1037,9 +1037,17 @@ export type Database = {
         Args: { meeting_code_param: string; user_id_param?: string }
         Returns: Json
       }
+      configure_email_otp_security: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       create_instant_meeting: {
         Args: { user_id: string; title: string; description: string }
         Returns: string
+      }
+      enable_password_breach_protection: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       generate_meeting_code: {
         Args: Record<PropertyKey, never>
