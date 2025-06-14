@@ -98,6 +98,8 @@ const Meeting = () => {
   const {
     localStream,
     remoteStreams,
+    connectedPeers,
+    connectionState,
     isMuted,
     isVideoOff,
     isScreenSharing,
@@ -107,7 +109,7 @@ const Meeting = () => {
     stopScreenShare,
     initializeWebRTC,
     cleanupWebRTC
-  } = useWebRTC();
+  } = useWebRTC(meeting?.id, user?.id);
 
   const { settings, getGridClasses } = useLayoutCustomization();
 
@@ -763,6 +765,24 @@ const Meeting = () => {
             } transition-all duration-300`}
             layout
           >
+            {/* Connection Status Indicator */}
+            {connectionState !== 'connected' && (
+              <motion.div
+                className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="bg-yellow-500/90 text-white px-4 py-2 rounded-lg backdrop-blur-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                    <span className="text-sm font-medium">
+                      {connectionState === 'connecting' ? 'Connecting to meeting...' : 'Connection lost. Reconnecting...'}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             <div className={`grid gap-2 md:gap-4 h-full ${getGridClasses()}`}>
               <OptimizedVideoTile
                 participant={{
@@ -827,6 +847,9 @@ const Meeting = () => {
                       <Users className="w-8 md:w-12 h-8 md:h-12 mx-auto mb-3 opacity-50" />
                     </motion.div>
                     <p className="text-xs md:text-sm">Waiting for participants...</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Connected: {connectedPeers.size} peers
+                    </p>
                   </div>
                 </motion.div>
               ))}
