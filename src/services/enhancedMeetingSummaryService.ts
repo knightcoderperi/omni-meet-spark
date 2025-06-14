@@ -82,43 +82,22 @@ export class EnhancedMeetingSummaryService {
     try {
       console.log('Sending personalized emails for meeting:', meetingId);
 
-      // Get all participants with their email addresses from user accounts
+      // Get all participants with their email addresses
       const { data: participants, error: participantsError } = await supabase
         .from('meeting_participants')
-        .select(`
-          *,
-          user_id,
-          guest_name,
-          email
-        `)
+        .select('*')
         .eq('meeting_id', meetingId);
 
       if (participantsError) {
         throw new Error('Failed to fetch participants');
       }
 
-      // Get user emails from auth.users for registered users
+      // Filter participants who have email addresses
       const participantEmails = new Map();
       
       for (const participant of participants || []) {
-        if (participant.user_id) {
-          // Get email from user profile or auth
-          const { data: userData, error: userError } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('id', participant.user_id)
-            .single();
-          
-          if (!userError && userData?.email) {
-            participantEmails.set(participant.guest_name || 'Unknown', userData.email);
-          } else {
-            // Fallback to participant email if available
-            if (participant.email) {
-              participantEmails.set(participant.guest_name || 'Unknown', participant.email);
-            }
-          }
-        } else if (participant.email) {
-          // Guest participant with email
+        if (participant.email) {
+          // Use email from meeting_participants table
           participantEmails.set(participant.guest_name || 'Unknown', participant.email);
         }
       }
