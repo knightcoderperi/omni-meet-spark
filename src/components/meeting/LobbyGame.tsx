@@ -223,46 +223,30 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <Button
               onClick={() => setGameType('dotsboxes')}
-              variant={gameType === 'dotsboxes' ? 'default' : 'outline'}
-              className={`text-xs py-2 theme-button ${
-                gameType === 'dotsboxes' 
-                  ? 'btn-primary-premium' 
-                  : 'btn-secondary-premium'
-              }`}
+              variant="default"
+              className="text-xs py-2 theme-button btn-primary-premium"
             >
               <Grid3X3 className="w-3 h-3 mr-1" />
               Dots & Boxes
             </Button>
             <Button
               onClick={() => startGame('memory')}
-              variant={gameType === 'memory' ? 'default' : 'outline'}
-              className={`text-xs py-2 theme-button ${
-                gameType === 'memory' 
-                  ? 'btn-primary-premium' 
-                  : 'btn-secondary-premium'
-              }`}
+              variant="outline"
+              className="text-xs py-2 theme-button btn-secondary-premium"
             >
               🧠 Memory
             </Button>
             <Button
               onClick={() => startGame('math')}
-              variant={gameType === 'math' ? 'default' : 'outline'}
-              className={`text-xs py-2 theme-button ${
-                gameType === 'math' 
-                  ? 'btn-primary-premium' 
-                  : 'btn-secondary-premium'
-              }`}
+              variant="outline"
+              className="text-xs py-2 theme-button btn-secondary-premium"
             >
               🔢 Math
             </Button>
             <Button
               onClick={() => startGame('riddle')}
-              variant={gameType === 'riddle' ? 'default' : 'outline'}
-              className={`text-xs py-2 theme-button ${
-                gameType === 'riddle' 
-                  ? 'btn-primary-premium' 
-                  : 'btn-secondary-premium'
-              }`}
+              variant="outline"
+              className="text-xs py-2 theme-button btn-secondary-premium"
             >
               🧩 Riddles
             </Button>
