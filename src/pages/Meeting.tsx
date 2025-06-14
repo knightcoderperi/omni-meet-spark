@@ -20,12 +20,12 @@ import ParticipantsPanel from '@/components/meeting/ParticipantsPanel';
 import AIAssistantPanel from '@/components/meeting/AIAssistantPanel';
 import PreJoinScreen from '@/components/meeting/PreJoinScreen';
 import MeetingLobby from '@/components/meeting/MeetingLobby';
-import MeetingInsights from '@/components/meeting/MeetingInsights';
 import Whiteboard from '@/components/whiteboard/Whiteboard';
 import TaskGenerator from '@/components/meeting/TaskGenerator';
 import TranslationChatWidget from '@/components/meeting/TranslationChatWidget';
 import ShareLinkModal from '@/components/meeting/ShareLinkModal';
 import LayoutCustomizationPanel from '@/components/meeting/LayoutCustomizationPanel';
+import MeetingEndHandler from '@/components/meeting/MeetingEndHandler';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { useLayoutCustomization } from '@/hooks/useLayoutCustomization';
 import { useTheme } from '@/hooks/useTheme';
@@ -69,7 +69,6 @@ const Meeting = () => {
   const [showParticipants, setShowParticipants] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showWhiteboard, setShowWhiteboard] = useState(false);
-  const [showInsights, setShowInsights] = useState(false);
   const [showTaskGenerator, setShowTaskGenerator] = useState(false);
   const [showTranslationChat, setShowTranslationChat] = useState(false);
   const [showLayoutPanel, setShowLayoutPanel] = useState(false);
@@ -273,11 +272,20 @@ const Meeting = () => {
     cleanupWebRTC();
     
     if (meeting && user) {
+      // Mark meeting as ended for current user
       await supabase
         .from('meeting_participants')
         .update({ left_at: new Date().toISOString() })
         .eq('meeting_id', meeting.id)
         .eq('user_id', user.id);
+
+      // If user is host, mark meeting as inactive
+      if (meeting.host_id === user.id) {
+        await supabase
+          .from('meetings')
+          .update({ is_active: false })
+          .eq('id', meeting.id);
+      }
     }
     navigate('/dashboard');
   };
@@ -393,6 +401,18 @@ const Meeting = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 relative overflow-hidden">
+      {/* Meeting End Handler - triggers summary when meeting ends */}
+      <MeetingEndHandler
+        meetingId={meeting?.id || ''}
+        isActive={meeting?.is_active || false}
+        onMeetingEnd={() => {
+          toast({
+            title: "Meeting Summary Sent",
+            description: "All attendees will receive an email with the meeting summary",
+          });
+        }}
+      />
+
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
           className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-blue-400/10 dark:from-cyan-500/20 dark:to-blue-500/20 rounded-full blur-3xl"
@@ -457,22 +477,6 @@ const Meeting = () => {
             meetingId={meeting?.id || ''}
             isVisible={showTranslationChat}
             onClose={() => setShowTranslationChat(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      <MeetingInsights
-        meetingId={meeting?.id || ''}
-        isVisible={showInsights}
-      />
-
-      <AnimatePresence>
-        {showWhiteboard && (
-          <Whiteboard
-            isVisible={showWhiteboard}
-            onClose={() => setShowWhiteboard(false)}
-            meetingId={meeting?.id || ''}
-            userId={user?.id}
           />
         )}
       </AnimatePresence>
@@ -623,7 +627,7 @@ const Meeting = () => {
                 {!isMobile && "Translate"}
               </Button>
 
-              {/* ... keep existing code (rest of header buttons) */}
+              {/* Additional header buttons can be added here */}
             </div>
           </div>
         </motion.header>
