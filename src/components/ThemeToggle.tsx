@@ -1,10 +1,13 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Moon, Sparkles } from 'lucide-react';
+import { Moon, Sun, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/hooks/useTheme';
 
 const ThemeToggle = () => {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <motion.div
       className="relative"
@@ -14,8 +17,8 @@ const ThemeToggle = () => {
       <Button
         variant="ghost"
         size="sm"
-        className="relative w-20 h-10 rounded-2xl p-0 glass-premium cursor-default overflow-hidden group"
-        disabled
+        className="relative w-20 h-10 rounded-2xl p-0 glass-premium cursor-pointer overflow-hidden group"
+        onClick={toggleTheme}
       >
         {/* Animated background gradient */}
         <motion.div 
@@ -55,9 +58,8 @@ const ThemeToggle = () => {
         {/* Main toggle indicator */}
         <motion.div
           className="absolute left-1 w-8 h-8 bg-gradient-to-br from-blue-500 via-purple-600 to-blue-700 rounded-xl shadow-lg flex items-center justify-center backdrop-blur-sm border border-white/20"
-          initial={{ x: 0 }}
           animate={{ 
-            x: 0,
+            x: theme === 'dark' ? 0 : 44,
             boxShadow: [
               '0 0 10px rgba(59, 130, 246, 0.3)',
               '0 0 20px rgba(139, 92, 246, 0.4)',
@@ -65,16 +67,18 @@ const ThemeToggle = () => {
             ]
           }}
           transition={{ 
-            boxShadow: { duration: 2, repeat: Infinity },
-            type: "spring",
-            stiffness: 300,
-            damping: 30
+            x: { type: "spring", stiffness: 300, damping: 30 },
+            boxShadow: { duration: 2, repeat: Infinity }
           }}
         >
-          <Moon className="w-4 h-4 text-white drop-shadow-lg" />
+          {theme === 'dark' ? (
+            <Moon className="w-4 h-4 text-white drop-shadow-lg" />
+          ) : (
+            <Sun className="w-4 h-4 text-white drop-shadow-lg" />
+          )}
         </motion.div>
 
-        {/* Premium label */}
+        {/* Theme label */}
         <motion.div 
           className="absolute right-2 flex items-center space-x-1"
           initial={{ opacity: 0.7 }}
@@ -83,7 +87,7 @@ const ThemeToggle = () => {
         >
           <Sparkles className="w-3 h-3 text-cyan-400" />
           <span className="text-xs font-medium bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-            DARK
+            {theme.toUpperCase()}
           </span>
         </motion.div>
 
@@ -93,15 +97,6 @@ const ThemeToggle = () => {
           style={{ width: '200%' }}
         />
       </Button>
-      
-      {/* Tooltip */}
-      <motion.div
-        className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
-        initial={{ opacity: 0, y: -5 }}
-        whileHover={{ opacity: 1, y: 0 }}
-      >
-        Premium Dark Mode
-      </motion.div>
     </motion.div>
   );
 };

@@ -33,6 +33,8 @@ import CatchMeUpButton from '@/components/meeting/CatchMeUpButton';
 import LateJoinerWelcome from '@/components/meeting/LateJoinerWelcome';
 import CatchMeUpModal from '@/components/meeting/CatchMeUpModal';
 import { Globe } from 'lucide-react';
+import SmoothLoader from '@/components/SmoothLoader';
+import ShareMeetingButton from '@/components/ShareMeetingButton';
 
 interface Meeting {
   id: string;
@@ -372,17 +374,11 @@ const Meeting = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
-        <motion.div 
-          className="text-center"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-700 dark:text-white text-lg">Joining meeting...</p>
-        </motion.div>
-      </div>
+      <SmoothLoader 
+        message="Joining meeting..." 
+        size="lg"
+        showLogo={true}
+      />
     );
   }
 
@@ -391,7 +387,7 @@ const Meeting = () => {
       <PreJoinScreen
         meeting={meeting}
         onJoin={handleJoinMeeting}
-        onThemeToggle={() => {}} // No-op since theme is fixed to dark
+        onThemeToggle={() => {}} // No-op since theme is managed by useTheme
         theme={theme}
       />
     );
@@ -520,7 +516,7 @@ const Meeting = () => {
 
       {/* Main Meeting Interface */}
       <div className="absolute inset-0 flex flex-col">
-        {/* Premium Header Bar with Enhanced Catch Me Up Button */}
+        {/* Premium Header Bar with Enhanced Sharing */}
         <motion.header 
           className="bg-white/80 dark:bg-black/20 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/10 p-2 md:p-4 z-20"
           initial={{ y: -50, opacity: 0 }}
@@ -589,6 +585,16 @@ const Meeting = () => {
             </div>
             
             <div className="flex items-center space-x-1 md:space-x-3">
+              {/* Enhanced Share Button for Instant Meeting */}
+              <ShareMeetingButton
+                meetingType="instant"
+                meetingData={{
+                  title: meeting?.title || 'Meeting',
+                  code: meetingCode,
+                  id: meeting?.id
+                }}
+              />
+
               {/* Conditional Catch Me Up Button - only for late joiners, not host */}
               {shouldShowCatchMeUp() && (
                 <CatchMeUpButton

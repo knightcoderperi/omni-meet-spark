@@ -12,16 +12,13 @@ import Dashboard from "./pages/Dashboard";
 import Meeting from "./pages/Meeting";
 import SystemValidation from "./pages/SystemValidation";
 import NotFound from "./pages/NotFound";
+import SmoothLoader from "./components/SmoothLoader";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
-    // Force dark mode globally on app load
-    document.documentElement.classList.add('dark');
-    document.body.classList.add('dark-mode-enhanced');
-    
-    // Apply premium dark theme meta tags
+    // Apply premium theme meta tags
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) {
       metaTheme.setAttribute('content', '#0a0a0a');
@@ -37,10 +34,10 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <div className="dark-mode-enhanced">
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<SmoothLoader message="Loading OmniMeet..." />}>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
@@ -49,8 +46,8 @@ const App = () => {
                 <Route path="/validation/:meetingId" element={<SystemValidation />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-          </div>
+            </Suspense>
+          </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
