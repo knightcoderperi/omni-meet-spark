@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 
 export const useTheme = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     // Check for saved theme preference or default to dark
@@ -14,6 +15,9 @@ export const useTheme = () => {
   const applyTheme = (newTheme: 'light' | 'dark') => {
     const root = document.documentElement;
     const body = document.body;
+    
+    // Add transition class for smooth theme switching
+    body.classList.add('theme-transitioning');
     
     if (newTheme === 'dark') {
       root.classList.add('dark');
@@ -29,6 +33,9 @@ export const useTheme = () => {
       root.style.setProperty('--surface-primary', '#1f1f1f');
       root.style.setProperty('--surface-secondary', '#2a2a2a');
       root.style.setProperty('--surface-tertiary', '#333333');
+      root.style.setProperty('--text-primary', '#ffffff');
+      root.style.setProperty('--text-secondary', '#e5e5e5');
+      root.style.setProperty('--text-muted', '#9ca3af');
     } else {
       root.classList.remove('dark');
       root.classList.add('light');
@@ -36,22 +43,33 @@ export const useTheme = () => {
       body.classList.remove('dark-mode-enhanced');
       body.classList.add('light-mode-enhanced');
       
-      // Premium light theme CSS variables
+      // Premium light theme CSS variables - Swiggy/Zomato inspired
       root.style.setProperty('--background-primary', '#ffffff');
       root.style.setProperty('--background-secondary', '#f8fafc');
       root.style.setProperty('--background-tertiary', '#f1f5f9');
       root.style.setProperty('--surface-primary', '#ffffff');
-      root.style.setProperty('--surface-secondary', '#f8fafc');
-      root.style.setProperty('--surface-tertiary', '#e2e8f0');
+      root.style.setProperty('--surface-secondary', '#fefefe');
+      root.style.setProperty('--surface-tertiary', '#f9fafb');
+      root.style.setProperty('--text-primary', '#1a1a1a');
+      root.style.setProperty('--text-secondary', '#4a5568');
+      root.style.setProperty('--text-muted', '#718096');
+      
+      // Light mode specific colors
+      root.style.setProperty('--light-accent-orange', '#ff6b35');
+      root.style.setProperty('--light-accent-red', '#e53e3e');
+      root.style.setProperty('--light-accent-green', '#38a169');
+      root.style.setProperty('--light-accent-blue', '#3182ce');
+      root.style.setProperty('--light-shadow-primary', '0 4px 20px rgba(0, 0, 0, 0.08)');
+      root.style.setProperty('--light-shadow-secondary', '0 2px 10px rgba(0, 0, 0, 0.06)');
+      root.style.setProperty('--light-border', '#e2e8f0');
     }
     
-    // Common theme variables
-    root.style.setProperty('--accent-blue', newTheme === 'light' ? '#3b82f6' : '#0066ff');
-    root.style.setProperty('--accent-green', newTheme === 'light' ? '#22c55e' : '#00ff88');
-    root.style.setProperty('--accent-purple', newTheme === 'light' ? '#9333ea' : '#8b5cf6');
-    root.style.setProperty('--text-primary', newTheme === 'dark' ? '#ffffff' : '#1e293b');
-    root.style.setProperty('--text-secondary', newTheme === 'dark' ? '#e5e5e5' : '#475569');
-    root.style.setProperty('--text-muted', newTheme === 'dark' ? '#9ca3af' : '#64748b');
+    // Common theme variables with enhanced colors
+    root.style.setProperty('--accent-blue', newTheme === 'light' ? '#3182ce' : '#0066ff');
+    root.style.setProperty('--accent-green', newTheme === 'light' ? '#38a169' : '#00ff88');
+    root.style.setProperty('--accent-purple', newTheme === 'light' ? '#805ad5' : '#8b5cf6');
+    root.style.setProperty('--accent-orange', newTheme === 'light' ? '#ff6b35' : '#ff8c42');
+    root.style.setProperty('--accent-red', newTheme === 'light' ? '#e53e3e' : '#ff6b7a');
     
     localStorage.setItem('omnimeet-theme', newTheme);
     
@@ -70,16 +88,47 @@ export const useTheme = () => {
       
       const fontLink = document.createElement('link');
       fontLink.rel = 'stylesheet';
-      fontLink.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap';
+      fontLink.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap';
       document.head.appendChild(fontLink);
     }
+    
+    // Remove transition class after animation completes
+    setTimeout(() => {
+      body.classList.remove('theme-transitioning');
+    }, 500);
   };
 
   const toggleTheme = () => {
+    setIsTransitioning(true);
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
     applyTheme(newTheme);
+    
+    // Reset transitioning state
+    setTimeout(() => {
+      setIsTransitioning(false);
+    }, 500);
   };
 
-  return { theme, toggleTheme };
+  // Smart theme detection based on time of day
+  const detectOptimalTheme = () => {
+    const hour = new Date().getHours();
+    return (hour >= 6 && hour <= 18) ? 'light' : 'dark';
+  };
+
+  const setAutoTheme = () => {
+    const optimalTheme = detectOptimalTheme();
+    if (optimalTheme !== theme) {
+      setTheme(optimalTheme);
+      applyTheme(optimalTheme);
+    }
+  };
+
+  return { 
+    theme, 
+    toggleTheme, 
+    isTransitioning, 
+    setAutoTheme, 
+    detectOptimalTheme 
+  };
 };

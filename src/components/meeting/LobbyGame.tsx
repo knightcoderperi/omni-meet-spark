@@ -202,16 +202,16 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
     return (
       <div className="w-full max-w-4xl mx-auto space-y-4">
         {/* Game Type Selector */}
-        <Card className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 backdrop-blur-xl border border-purple-500/20 p-4">
+        <Card className="glass-premium theme-card p-4">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <Gamepad2 className="w-6 h-6 text-purple-400" />
-            <h3 className="text-xl font-bold text-white">
+            <Gamepad2 className="w-6 h-6 text-gradient-electric" />
+            <h3 className="text-xl font-bold text-gradient-primary">
               {waitingForApproval ? 'While You Wait...' : 'Lobby Games'}
             </h3>
           </div>
 
           {waitingForApproval && (
-            <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
+            <div className="theme-notification p-3 mb-4">
               <div className="flex items-center justify-center space-x-2 text-yellow-400">
                 <Clock className="w-4 h-4" />
                 <span className="text-sm">Waiting for host approval</span>
@@ -224,10 +224,10 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
             <Button
               onClick={() => setGameType('dotsboxes')}
               variant={gameType === 'dotsboxes' ? 'default' : 'outline'}
-              className={`text-xs py-2 ${
+              className={`text-xs py-2 theme-button ${
                 gameType === 'dotsboxes' 
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white' 
-                  : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                  ? 'btn-primary-premium' 
+                  : 'btn-secondary-premium'
               }`}
             >
               <Grid3X3 className="w-3 h-3 mr-1" />
@@ -236,10 +236,10 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
             <Button
               onClick={() => setGameType('memory')}
               variant={gameType === 'memory' ? 'default' : 'outline'}
-              className={`text-xs py-2 ${
+              className={`text-xs py-2 theme-button ${
                 gameType === 'memory' 
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
-                  : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                  ? 'btn-primary-premium' 
+                  : 'btn-secondary-premium'
               }`}
             >
               🧠 Memory
@@ -247,10 +247,10 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
             <Button
               onClick={() => setGameType('math')}
               variant={gameType === 'math' ? 'default' : 'outline'}
-              className={`text-xs py-2 ${
+              className={`text-xs py-2 theme-button ${
                 gameType === 'math' 
-                  ? 'bg-gradient-to-r from-green-500 to-blue-600 text-white' 
-                  : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                  ? 'btn-primary-premium' 
+                  : 'btn-secondary-premium'
               }`}
             >
               🔢 Math
@@ -258,10 +258,10 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
             <Button
               onClick={() => setGameType('riddle')}
               variant={gameType === 'riddle' ? 'default' : 'outline'}
-              className={`text-xs py-2 ${
+              className={`text-xs py-2 theme-button ${
                 gameType === 'riddle' 
-                  ? 'bg-gradient-to-r from-orange-500 to-pink-600 text-white' 
-                  : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                  ? 'btn-primary-premium' 
+                  : 'btn-secondary-premium'
               }`}
             >
               🧩 Riddles
@@ -286,17 +286,17 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
         exit={{ opacity: 0, y: 20 }}
         className="w-full max-w-md mx-auto"
       >
-        <Card className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 backdrop-blur-xl border border-purple-500/20 p-6">
+        <Card className="glass-premium theme-card p-6">
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <Gamepad2 className="w-6 h-6 text-purple-400" />
-              <h3 className="text-xl font-bold text-white">
+              <Gamepad2 className="w-6 h-6 text-gradient-electric" />
+              <h3 className="text-xl font-bold text-gradient-primary">
                 {waitingForApproval ? 'While You Wait...' : 'Lobby Games'}
               </h3>
             </div>
 
             {waitingForApproval && (
-              <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
+              <div className="theme-notification p-3 mb-4">
                 <div className="flex items-center justify-center space-x-2 text-yellow-400">
                   <Clock className="w-4 h-4" />
                   <span className="text-sm">Waiting for host approval</span>
@@ -307,33 +307,33 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
 
             {!gameStarted ? (
               <div className="space-y-4">
-                <p className="text-gray-300 text-sm">
+                <p className="theme-text-secondary text-sm">
                   {waitingForApproval ? 'Keep yourself entertained!' : 'Play a quick game while waiting!'}
                 </p>
                 
                 <div className="grid grid-cols-1 gap-3">
                   <Button
                     onClick={() => setGameType('dotsboxes')}
-                    className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white py-3"
+                    className="btn-primary-premium py-3"
                   >
                     <Grid3X3 className="w-4 h-4 mr-2" />
                     🎯 Dots & Boxes (Multiplayer)
                   </Button>
                   <Button
                     onClick={() => startGame('memory')}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3"
+                    className="btn-primary-premium py-3"
                   >
                     🧠 Memory Match
                   </Button>
                   <Button
                     onClick={() => startGame('math')}
-                    className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white py-3"
+                    className="btn-primary-premium py-3"
                   >
                     🔢 Quick Math
                   </Button>
                   <Button
                     onClick={() => startGame('riddle')}
-                    className="bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white py-3"
+                    className="btn-primary-premium py-3"
                   >
                     🧩 Brain Riddles
                   </Button>
@@ -344,10 +344,10 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Star className="w-5 h-5 text-yellow-400" />
-                    <span className="text-white font-semibold">Score: {score}</span>
+                    <span className="theme-text-primary font-semibold">Score: {score}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-white">⏱️ {timeLeft}s</span>
+                    <span className="theme-text-primary">⏱️ {timeLeft}s</span>
                   </div>
                 </div>
 
@@ -358,11 +358,11 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
                     className="text-center space-y-4"
                   >
                     <Trophy className="w-12 h-12 text-yellow-400 mx-auto" />
-                    <h4 className="text-xl font-bold text-white">Game Over!</h4>
-                    <p className="text-gray-300">Final Score: {score}</p>
+                    <h4 className="text-xl font-bold theme-text-primary">Game Over!</h4>
+                    <p className="theme-text-secondary">Final Score: {score}</p>
                     <Button
                       onClick={resetGame}
-                      className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
+                      className="btn-secondary-premium"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
                       Play Again
@@ -372,7 +372,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
                   <>
                     {gameType === 'memory' && (
                       <div className="space-y-4">
-                        <h4 className="font-semibold text-white">Memory Match</h4>
+                        <h4 className="font-semibold theme-text-primary">Memory Match</h4>
                         <div className="grid grid-cols-4 gap-2">
                           {memoryCards.map((card) => (
                             <motion.button
@@ -381,7 +381,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
                               className={`aspect-square rounded-lg border-2 text-2xl font-bold transition-all duration-300 ${
                                 card.flipped || card.matched
                                   ? 'bg-white border-purple-400 text-gray-800'
-                                  : 'bg-purple-800/50 border-purple-600 hover:bg-purple-700/50'
+                                  : 'theme-card-background border-purple-600 hover:bg-purple-700/50'
                               }`}
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
@@ -396,22 +396,22 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
 
                     {gameType === 'math' && (
                       <div className="space-y-4">
-                        <h4 className="font-semibold text-white">Quick Math</h4>
+                        <h4 className="font-semibold theme-text-primary">Quick Math</h4>
                         <div className="text-center">
-                          <p className="text-2xl font-bold text-white mb-4">{mathQuestion.question} = ?</p>
+                          <p className="text-2xl font-bold theme-text-primary mb-4">{mathQuestion.question} = ?</p>
                           <div className="flex space-x-2">
                             <input
                               type="number"
                               value={userAnswer}
                               onChange={(e) => setUserAnswer(e.target.value)}
-                              className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400"
+                              className="input-premium flex-1 px-3 py-2"
                               placeholder="Your answer"
                               onKeyPress={(e) => e.key === 'Enter' && handleMathAnswer()}
                             />
                             <Button
                               onClick={handleMathAnswer}
                               disabled={!userAnswer}
-                              className="bg-green-600 hover:bg-green-700"
+                              className="btn-primary-premium"
                             >
                               Submit
                             </Button>
@@ -422,9 +422,9 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
 
                     {gameType === 'riddle' && (
                       <div className="space-y-4">
-                        <h4 className="font-semibold text-white">Brain Riddles</h4>
+                        <h4 className="font-semibold theme-text-primary">Brain Riddles</h4>
                         <div className="text-center">
-                          <p className="text-sm text-gray-300 mb-4 leading-relaxed">
+                          <p className="text-sm theme-text-secondary mb-4 leading-relaxed">
                             {riddles[currentRiddle].question}
                           </p>
                           <div className="flex space-x-2">
@@ -432,14 +432,14 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
                               type="text"
                               value={riddleAnswer}
                               onChange={(e) => setRiddleAnswer(e.target.value)}
-                              className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400"
+                              className="input-premium flex-1 px-3 py-2"
                               placeholder="Your answer"
                               onKeyPress={(e) => e.key === 'Enter' && handleRiddleAnswer()}
                             />
                             <Button
                               onClick={handleRiddleAnswer}
                               disabled={!riddleAnswer.trim()}
-                              className="bg-orange-600 hover:bg-orange-700"
+                              className="btn-primary-premium"
                             >
                               Submit
                             </Button>
@@ -455,7 +455,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
                     onClick={resetGame}
                     variant="outline"
                     size="sm"
-                    className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
+                    className="w-full btn-ghost-premium"
                   >
                     End Game
                   </Button>
