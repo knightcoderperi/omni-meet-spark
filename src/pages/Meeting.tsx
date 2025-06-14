@@ -276,13 +276,26 @@ const Meeting = () => {
         return;
       }
 
-      // Type cast the response to our expected interface
-      const joinCheck = joinCheckData as unknown as CanJoinMeetingResponse;
+      // Safe type conversion with proper validation
+      const joinCheck = joinCheckData as unknown;
+      
+      // Validate the response structure before using it
+      if (!joinCheck || typeof joinCheck !== 'object' || !('can_join' in joinCheck)) {
+        toast({
+          title: "Error",
+          description: "Invalid response from server",
+          variant: "destructive"
+        });
+        navigate('/dashboard');
+        return;
+      }
 
-      if (!joinCheck?.can_join) {
+      const typedJoinCheck = joinCheck as CanJoinMeetingResponse;
+
+      if (!typedJoinCheck.can_join) {
         toast({
           title: "Cannot join meeting",
-          description: joinCheck?.reason || "Unable to join meeting",
+          description: typedJoinCheck.reason || "Unable to join meeting",
           variant: "destructive"
         });
         navigate('/dashboard');
