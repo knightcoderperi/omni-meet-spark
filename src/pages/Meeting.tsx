@@ -25,7 +25,6 @@ import Whiteboard from '@/components/whiteboard/Whiteboard';
 import SmartSummary from '@/components/meeting/SmartSummary';
 import TaskGenerator from '@/components/meeting/TaskGenerator';
 import TranslationChat from '@/components/meeting/TranslationChat';
-import SmartCapsuleSummary from '@/components/meeting/SmartCapsuleSummary';
 import ShareLinkModal from '@/components/meeting/ShareLinkModal';
 import LayoutCustomizationPanel from '@/components/meeting/LayoutCustomizationPanel';
 import { useWebRTC } from '@/hooks/useWebRTC';
@@ -33,6 +32,7 @@ import { useLayoutCustomization } from '@/hooks/useLayoutCustomization';
 import { useTheme } from '@/hooks/useTheme';
 import CatchMeUpButton from '@/components/meeting/CatchMeUpButton';
 import LateJoinerWelcome from '@/components/meeting/LateJoinerWelcome';
+import CatchMeUpModal from '@/components/meeting/CatchMeUpModal';
 
 interface Meeting {
   id: string;
@@ -77,10 +77,11 @@ const Meeting = () => {
   const [handRaised, setHandRaised] = useState(false);
   const [meetingDuration, setMeetingDuration] = useState(0);
   const [reactions, setReactions] = useState<Array<{id: string, emoji: string, x: number, y: number}>>([]);
-  const [showSmartCapsule, setShowSmartCapsule] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showLateJoinerWelcome, setShowLateJoinerWelcome] = useState(false);
+  const [showCatchMeUp, setShowCatchMeUp] = useState(false);
   const [userJoinTime, setUserJoinTime] = useState(0);
+  const [hasShownWelcome, setHasShownWelcome] = useState(false);
 
   const {
     localStream,
@@ -97,6 +98,8 @@ const Meeting = () => {
   } = useWebRTC();
 
   const { settings, getGridClasses } = useLayoutCustomization();
+
+  const { toggleTheme: _toggleTheme } = useTheme();
 
   useEffect(() => {
     if (!user) {
@@ -177,8 +180,9 @@ const Meeting = () => {
       
       setParticipants([newParticipant]);
       
-      // Show late joiner welcome if user missed more than 1 minute
-      if (joinTime > 60) {
+      // Show late joiner welcome if user missed more than 1 minute and hasn't been shown before
+      if (joinTime > 60 && !hasShownWelcome) {
+        setHasShownWelcome(true);
         setTimeout(() => {
           setShowLateJoinerWelcome(true);
         }, 2000); // Show after 2 seconds to let UI settle
@@ -339,26 +343,28 @@ const Meeting = () => {
       <LateJoinerWelcome
         isVisible={showLateJoinerWelcome}
         onClose={() => setShowLateJoinerWelcome(false)}
-        onOpenSmartCapsule={() => {
+        onOpenCatchUp={() => {
           setShowLateJoinerWelcome(false);
-          setShowSmartCapsule(true);
+          setShowCatchMeUp(true);
         }}
         missedDuration={getMissedDuration()}
         participantCount={participants.length}
         meetingTitle={meeting?.title || 'Meeting'}
       />
 
-      {/* Meeting Enhancement Modals */}
+      {/* Catch Me Up Modal */}
       <AnimatePresence>
-        {showSmartCapsule && (
-          <SmartCapsuleSummary
+        {showCatchMeUp && (
+          <CatchMeUpModal
             meetingId={meeting?.id || ''}
-            isVisible={showSmartCapsule}
-            onClose={() => setShowSmartCapsule(false)}
+            isVisible={showCatchMeUp}
+            onClose={() => setShowCatchMeUp(false)}
+            missedDuration={getMissedDuration()}
           />
         )}
       </AnimatePresence>
 
+      {/* Meeting Enhancement Modals */}
       <AnimatePresence>
         {showSmartSummary && (
           <SmartSummary
@@ -449,7 +455,7 @@ const Meeting = () => {
 
       {/* Main Meeting Interface */}
       <div className="absolute inset-0 flex flex-col">
-        {/* Premium Header Bar with Enhanced Smart Capsule Button */}
+        {/* Premium Header Bar with Enhanced Catch Me Up Button */}
         <motion.header 
           className="bg-white/80 dark:bg-black/20 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/10 p-2 md:p-4 z-20"
           initial={{ y: -50, opacity: 0 }}
@@ -522,29 +528,9 @@ const Meeting = () => {
               <CatchMeUpButton
                 meetingDuration={meetingDuration}
                 joinTime={userJoinTime}
-                onOpenSmartCapsule={() => setShowSmartCapsule(true)}
+                onOpenCatchUp={() => setShowCatchMeUp(true)}
                 isMobile={isMobile}
               />
-
-              {/* Enhanced Smart Capsule Summary Button */}
-              <Button 
-                variant="ghost" 
-                size={isMobile ? "sm" : "default"}
-                className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-800 border border-transparent hover:border-purple-500/30 relative"
-                onClick={() => setShowSmartCapsule(true)}
-              >
-                <Brain className="w-4 h-4 mr-1" />
-                {!isMobile && "Smart Capsule"}
-                
-                {/* Attention indicator for new users */}
-                {getMissedDuration() > 60 && (
-                  <motion.div
-                    className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  />
-                )}
-              </Button>
 
               {/* Layout Customization Button */}
               <Button 

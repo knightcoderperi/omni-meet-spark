@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 interface LateJoinerWelcomeProps {
   isVisible: boolean;
   onClose: () => void;
-  onOpenSmartCapsule: () => void;
+  onOpenCatchUp: () => void;
   missedDuration: number;
   participantCount: number;
   meetingTitle: string;
@@ -22,7 +22,7 @@ interface LateJoinerWelcomeProps {
 const LateJoinerWelcome: React.FC<LateJoinerWelcomeProps> = ({
   isVisible,
   onClose,
-  onOpenSmartCapsule,
+  onOpenCatchUp,
   missedDuration,
   participantCount,
   meetingTitle
@@ -206,7 +206,7 @@ const LateJoinerWelcome: React.FC<LateJoinerWelcomeProps> = ({
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 + index * 0.1 }}
-                    onClick={onOpenSmartCapsule}
+                    onClick={onOpenCatchUp}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >

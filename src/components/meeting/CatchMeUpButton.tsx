@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Brain, Clock, Zap, Users } from 'lucide-react';
+import { Brain, Clock, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -9,14 +9,14 @@ import { useToast } from '@/hooks/use-toast';
 interface CatchMeUpButtonProps {
   meetingDuration: number;
   joinTime: number;
-  onOpenSmartCapsule: () => void;
+  onOpenCatchUp: () => void;
   isMobile?: boolean;
 }
 
 const CatchMeUpButton: React.FC<CatchMeUpButtonProps> = ({
   meetingDuration,
   joinTime,
-  onOpenSmartCapsule,
+  onOpenCatchUp,
   isMobile = false
 }) => {
   const [missedDuration, setMissedDuration] = useState(0);
@@ -50,7 +50,7 @@ const CatchMeUpButton: React.FC<CatchMeUpButtonProps> = ({
   };
 
   const handleCatchMeUp = () => {
-    onOpenSmartCapsule();
+    onOpenCatchUp();
     setShowPulse(false);
     
     toast({
