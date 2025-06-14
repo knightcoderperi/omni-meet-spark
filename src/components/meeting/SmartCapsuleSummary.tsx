@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -44,6 +43,8 @@ const SmartCapsuleSummary: React.FC<SmartCapsuleSummaryProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState([1]);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [isCatchUpMode, setIsCatchUpMode] = useState(false);
+  const [quickSummaryGenerated, setQuickSummaryGenerated] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -422,6 +423,58 @@ Powered by OpenAI Whisper + Hugging Face Transformers
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const generateQuickCatchUp = async () => {
+    setIsProcessing(true);
+    
+    try {
+      // Simulate intelligent catch-up generation for demo
+      const catchUpSummary = `🎯 Smart Catch-Up Summary:
+
+📋 Key Decisions Made:
+• Team decided to postpone the Q4 product launch by 2 weeks
+• Budget approval granted for additional QA resources  
+• Sarah will lead the new security audit initiative
+
+⚡ Action Items Assigned:
+• John: Update marketing timeline by Friday
+• Lisa: Schedule client communications this week
+• Dev team: Focus on critical bug fixes
+
+🗣️ Important Discussions:
+• Quality concerns raised about user authentication
+• Resource allocation for holiday season coverage
+• Next sprint planning moved to Thursday
+
+⏰ What's Coming Next:
+• QA deep-dive session starts in 10 minutes
+• All-hands update scheduled for tomorrow 2PM
+• Client presentation on Friday - all hands on deck
+
+🤖 This intelligent summary captured 15 key insights from 5 minutes of missed discussion.`;
+
+      setSummary(catchUpSummary);
+      setQuickSummaryGenerated(true);
+      setIsCatchUpMode(true);
+      
+      // Generate speech
+      await generateSpeech(catchUpSummary);
+      
+      toast({
+        title: "🎯 Catch-Up Complete!",
+        description: "You're now up to speed with everything that happened",
+      });
+    } catch (error) {
+      console.error('Error generating catch-up:', error);
+      toast({
+        title: "Processing Error",
+        description: "Failed to generate catch-up summary. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const cleanup = () => {
     if (recordingTimerRef.current) {
       clearInterval(recordingTimerRef.current);
@@ -459,10 +512,13 @@ Powered by OpenAI Whisper + Hugging Face Transformers
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-white">
-                  🧠 Smart Capsule Summary
+                  {isCatchUpMode ? '🎯 Catch Me Up' : '🧠 Smart Capsule Summary'}
                 </h2>
                 <p className="text-purple-100">
-                  AI-powered speech capture & intelligent summarization
+                  {isCatchUpMode 
+                    ? 'AI-powered meeting catch-up & intelligent summarization'
+                    : 'AI-powered speech capture & intelligent summarization'
+                  }
                 </p>
               </div>
             </div>
@@ -478,6 +534,59 @@ Powered by OpenAI Whisper + Hugging Face Transformers
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-12rem)]">
+          {/* Quick Catch-Up Actions */}
+          {!quickSummaryGenerated && (
+            <Card className="mb-6 border border-gradient-to-r from-purple-200 to-pink-200 dark:border-purple-700 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5 text-purple-500" />
+                  <span>🚀 Instant Catch-Up</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600 dark:text-slate-400 mb-4">
+                  Get an instant AI-powered summary of what you missed while away from the meeting
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  <Button
+                    onClick={generateQuickCatchUp}
+                    disabled={isProcessing}
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg"
+                  >
+                    <Lightbulb className="w-4 h-4 mr-2" />
+                    Quick Summary (30s)
+                  </Button>
+                  
+                  <Button
+                    onClick={generateQuickCatchUp}
+                    disabled={isProcessing}
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg"
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Essential Points (1m)
+                  </Button>
+                  
+                  <Button
+                    onClick={generateQuickCatchUp}
+                    disabled={isProcessing}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Complete Overview (2m)
+                  </Button>
+                </div>
+
+                {isProcessing && (
+                  <div className="flex items-center justify-center space-x-2 text-purple-600 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>🤖 AI analyzing missed content...</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Recording Controls */}
           <Card className="mb-6 border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
             <CardHeader className="pb-3">
@@ -554,23 +663,30 @@ Powered by OpenAI Whisper + Hugging Face Transformers
             </Card>
           )}
 
-          {/* Current Summary */}
+          {/* Enhanced Current Summary for Catch-Up Mode */}
           {summary && (
             <Card className="mb-6 border border-green-200 dark:border-green-700 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Sparkles className="w-5 h-5 text-green-500" />
-                    <span>✨ Generated Summary</span>
+                    <span>{isCatchUpMode ? '🎯 Your Catch-Up Summary' : '✨ Generated Summary'}</span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => playAudioSummary(summary)}
-                    className="text-green-600 hover:text-green-700 hover:bg-green-100"
-                  >
-                    {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => playAudioSummary(summary)}
+                      className="text-green-600 hover:text-green-700 hover:bg-green-100"
+                    >
+                      {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    </Button>
+                    {isCatchUpMode && (
+                      <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                        Catch-Up Mode
+                      </Badge>
+                    )}
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -582,8 +698,21 @@ Powered by OpenAI Whisper + Hugging Face Transformers
                 <div className="flex items-center justify-between mt-3">
                   <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
                     <CheckCircle className="w-3 h-3 mr-1" />
-                    🤖 AI Processed
+                    {isCatchUpMode ? '🎯 Catch-Up Complete' : '🤖 AI Processed'}
                   </Badge>
+                  
+                  {isCatchUpMode && (
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsCatchUpMode(false)}
+                        className="text-green-600 border-green-300 hover:bg-green-50"
+                      >
+                        Continue Recording
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

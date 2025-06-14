@@ -31,6 +31,8 @@ import LayoutCustomizationPanel from '@/components/meeting/LayoutCustomizationPa
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { useLayoutCustomization } from '@/hooks/useLayoutCustomization';
 import { useTheme } from '@/hooks/useTheme';
+import CatchMeUpButton from '@/components/meeting/CatchMeUpButton';
+import LateJoinerWelcome from '@/components/meeting/LateJoinerWelcome';
 
 interface Meeting {
   id: string;
@@ -77,6 +79,8 @@ const Meeting = () => {
   const [reactions, setReactions] = useState<Array<{id: string, emoji: string, x: number, y: number}>>([]);
   const [showSmartCapsule, setShowSmartCapsule] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showLateJoinerWelcome, setShowLateJoinerWelcome] = useState(false);
+  const [userJoinTime, setUserJoinTime] = useState(0);
 
   const {
     localStream,
@@ -153,6 +157,9 @@ const Meeting = () => {
 
   const handleJoinMeeting = async (userName: string, audioOnly: boolean) => {
     try {
+      const joinTime = meetingDuration;
+      setUserJoinTime(joinTime);
+      
       // Use optimized tile size based on layout settings
       const tileSize = settings.compactMode ? 'small' : settings.gridSize;
       await initializeWebRTC(audioOnly, tileSize);
@@ -169,6 +176,13 @@ const Meeting = () => {
       };
       
       setParticipants([newParticipant]);
+      
+      // Show late joiner welcome if user missed more than 1 minute
+      if (joinTime > 60) {
+        setTimeout(() => {
+          setShowLateJoinerWelcome(true);
+        }, 2000); // Show after 2 seconds to let UI settle
+      }
       
       toast({
         title: "Joined meeting",
@@ -264,6 +278,10 @@ const Meeting = () => {
     });
   };
 
+  const getMissedDuration = () => {
+    return Math.max(0, meetingDuration - userJoinTime);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center">
@@ -316,6 +334,19 @@ const Meeting = () => {
           transition={{ duration: 25, repeat: Infinity }}
         />
       </div>
+
+      {/* Late Joiner Welcome Modal */}
+      <LateJoinerWelcome
+        isVisible={showLateJoinerWelcome}
+        onClose={() => setShowLateJoinerWelcome(false)}
+        onOpenSmartCapsule={() => {
+          setShowLateJoinerWelcome(false);
+          setShowSmartCapsule(true);
+        }}
+        missedDuration={getMissedDuration()}
+        participantCount={participants.length}
+        meetingTitle={meeting?.title || 'Meeting'}
+      />
 
       {/* Meeting Enhancement Modals */}
       <AnimatePresence>
@@ -418,7 +449,7 @@ const Meeting = () => {
 
       {/* Main Meeting Interface */}
       <div className="absolute inset-0 flex flex-col">
-        {/* Premium Header Bar with Smart Capsule Button */}
+        {/* Premium Header Bar with Enhanced Smart Capsule Button */}
         <motion.header 
           className="bg-white/80 dark:bg-black/20 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/10 p-2 md:p-4 z-20"
           initial={{ y: -50, opacity: 0 }}
@@ -487,15 +518,32 @@ const Meeting = () => {
             </div>
             
             <div className="flex items-center space-x-1 md:space-x-3">
-              {/* Smart Capsule Summary Button */}
+              {/* Prominent Catch Me Up Button */}
+              <CatchMeUpButton
+                meetingDuration={meetingDuration}
+                joinTime={userJoinTime}
+                onOpenSmartCapsule={() => setShowSmartCapsule(true)}
+                isMobile={isMobile}
+              />
+
+              {/* Enhanced Smart Capsule Summary Button */}
               <Button 
                 variant="ghost" 
                 size={isMobile ? "sm" : "default"}
-                className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-800 border border-transparent hover:border-purple-500/30"
+                className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-800 border border-transparent hover:border-purple-500/30 relative"
                 onClick={() => setShowSmartCapsule(true)}
               >
                 <Brain className="w-4 h-4 mr-1" />
                 {!isMobile && "Smart Capsule"}
+                
+                {/* Attention indicator for new users */}
+                {getMissedDuration() > 60 && (
+                  <motion.div
+                    className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                )}
               </Button>
 
               {/* Layout Customization Button */}
