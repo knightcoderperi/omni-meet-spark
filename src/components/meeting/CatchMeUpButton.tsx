@@ -33,7 +33,7 @@ const CatchMeUpButton: React.FC<CatchMeUpButtonProps> = ({
       
       // Show helpful toast for late joiners
       toast({
-        title: "⏰ You joined late!",
+        title: "⏰ You joined after the host!",
         description: `Click "Catch Me Up" to get an AI summary of the ${formatTime(missed)} you missed`,
         duration: 8000,
       });
@@ -59,7 +59,7 @@ const CatchMeUpButton: React.FC<CatchMeUpButtonProps> = ({
     });
   };
 
-  // Don't show if user hasn't missed much
+  // Don't show if user hasn't missed much (less than 30 seconds)
   if (missedDuration < 30) {
     return null;
   }

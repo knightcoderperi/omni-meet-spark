@@ -80,6 +80,8 @@ const Meeting = () => {
   const [showCatchMeUp, setShowCatchMeUp] = useState(false);
   const [userJoinTime, setUserJoinTime] = useState(0);
   const [hasShownWelcome, setHasShownWelcome] = useState(false);
+  const [hostJoinTime, setHostJoinTime] = useState<number | null>(null);
+  const [catchMeUpShown, setCatchMeUpShown] = useState(false);
 
   const {
     localStream,
@@ -107,6 +109,7 @@ const Meeting = () => {
     
     if (meetingCode) {
       fetchMeeting();
+      checkHostJoinTime();
     }
 
     const timer = setInterval(() => {
@@ -115,6 +118,39 @@ const Meeting = () => {
 
     return () => clearInterval(timer);
   }, [user, meetingCode, navigate]);
+
+  const checkHostJoinTime = async () => {
+    if (!meetingCode) return;
+    
+    try {
+      // Check if host has already joined by looking at meeting participants
+      const { data: meetingData } = await supabase
+        .from('meetings')
+        .select('host_id')
+        .eq('meeting_code', meetingCode)
+        .single();
+
+      if (meetingData) {
+        const { data: hostParticipant } = await supabase
+          .from('meeting_participants')
+          .select('joined_at')
+          .eq('meeting_id', meetingData.id)
+          .eq('user_id', meetingData.host_id)
+          .eq('status', 'joined')
+          .single();
+
+        if (hostParticipant && hostParticipant.joined_at) {
+          // Convert join time to seconds from meeting start
+          const hostJoinDate = new Date(hostParticipant.joined_at);
+          const meetingStartTime = 0; // Assuming meeting started at 0
+          const hostJoinSeconds = Math.floor((hostJoinDate.getTime() - Date.now()) / 1000) + meetingDuration;
+          setHostJoinTime(Math.max(0, hostJoinSeconds));
+        }
+      }
+    } catch (error) {
+      console.error('Error checking host join time:', error);
+    }
+  };
 
   const fetchMeeting = async () => {
     try {
@@ -161,6 +197,46 @@ const Meeting = () => {
       const joinTime = meetingDuration;
       setUserJoinTime(joinTime);
       
+      const isHost = meeting?.host_id === user?.id;
+      
+      // If user is host, record their join time
+      if (isHost) {
+        setHostJoinTime(joinTime);
+        // Update host join time in database
+        if (meeting?.id) {
+          await supabase
+            .from('meeting_participants')
+            .upsert({
+              meeting_id: meeting.id,
+              user_id: user?.id,
+              is_host: true,
+              joined_at: new Date().toISOString(),
+              status: 'joined'
+            });
+        }
+      } else {
+        // For non-host users, check if they're joining after host and show catch me up
+        if (hostJoinTime !== null && joinTime > hostJoinTime && !catchMeUpShown) {
+          setCatchMeUpShown(true);
+          setTimeout(() => {
+            setShowLateJoinerWelcome(true);
+          }, 2000);
+        }
+        
+        // Update participant join time in database
+        if (meeting?.id) {
+          await supabase
+            .from('meeting_participants')
+            .upsert({
+              meeting_id: meeting.id,
+              user_id: user?.id,
+              is_host: false,
+              joined_at: new Date().toISOString(),
+              status: 'joined'
+            });
+        }
+      }
+      
       // Use optimized tile size based on layout settings
       const tileSize = settings.compactMode ? 'small' : settings.gridSize;
       await initializeWebRTC(audioOnly, tileSize);
@@ -177,14 +253,6 @@ const Meeting = () => {
       };
       
       setParticipants([newParticipant]);
-      
-      // Show late joiner welcome if user missed more than 1 minute and hasn't been shown before
-      if (joinTime > 60 && !hasShownWelcome) {
-        setHasShownWelcome(true);
-        setTimeout(() => {
-          setShowLateJoinerWelcome(true);
-        }, 2000); // Show after 2 seconds to let UI settle
-      }
       
       toast({
         title: "Joined meeting",
@@ -281,7 +349,18 @@ const Meeting = () => {
   };
 
   const getMissedDuration = () => {
-    return Math.max(0, meetingDuration - userJoinTime);
+    if (hostJoinTime === null) return 0;
+    return Math.max(0, userJoinTime - hostJoinTime);
+  };
+
+  const shouldShowCatchMeUp = () => {
+    const isHost = meeting?.host_id === user?.id;
+    if (isHost) return false; // Never show for host
+    
+    if (hostJoinTime === null) return false; // Host hasn't joined yet
+    
+    const missedTime = getMissedDuration();
+    return missedTime > 30 && !catchMeUpShown; // Show if missed more than 30 seconds and not shown before
   };
 
   if (loading) {
@@ -313,7 +392,6 @@ const Meeting = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 relative overflow-hidden">
-      {/* Enhanced Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
           className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-blue-400/10 dark:from-cyan-500/20 dark:to-blue-500/20 rounded-full blur-3xl"
@@ -362,7 +440,6 @@ const Meeting = () => {
         )}
       </AnimatePresence>
 
-      {/* Meeting Enhancement Modals */}
       <AnimatePresence>
         {showTaskGenerator && (
           <TaskGenerator
@@ -383,13 +460,11 @@ const Meeting = () => {
         )}
       </AnimatePresence>
 
-      {/* Meeting Insights Panel */}
       <MeetingInsights
         meetingId={meeting?.id || ''}
         isVisible={showInsights}
       />
 
-      {/* Whiteboard Overlay */}
       <AnimatePresence>
         {showWhiteboard && (
           <Whiteboard
@@ -419,7 +494,6 @@ const Meeting = () => {
         onClose={() => setShowLayoutPanel(false)}
       />
 
-      {/* Emoji Reactions Overlay */}
       <AnimatePresence>
         {reactions.map(reaction => (
           <motion.div
@@ -512,15 +586,19 @@ const Meeting = () => {
             </div>
             
             <div className="flex items-center space-x-1 md:space-x-3">
-              {/* Prominent Catch Me Up Button */}
-              <CatchMeUpButton
-                meetingDuration={meetingDuration}
-                joinTime={userJoinTime}
-                onOpenCatchUp={() => setShowCatchMeUp(true)}
-                isMobile={isMobile}
-              />
+              {/* Conditional Catch Me Up Button - only for late joiners, not host */}
+              {shouldShowCatchMeUp() && (
+                <CatchMeUpButton
+                  meetingDuration={meetingDuration}
+                  joinTime={hostJoinTime || 0}
+                  onOpenCatchUp={() => {
+                    setShowCatchMeUp(true);
+                    setCatchMeUpShown(true);
+                  }}
+                  isMobile={isMobile}
+                />
+              )}
 
-              {/* Layout Customization Button */}
               <Button 
                 variant="ghost" 
                 size={isMobile ? "sm" : "default"}
@@ -531,7 +609,6 @@ const Meeting = () => {
                 {!isMobile && "Layout"}
               </Button>
 
-              {/* Mobile Share Button */}
               {isMobile && (
                 <Button 
                   variant="ghost" 
@@ -579,9 +656,7 @@ const Meeting = () => {
           </div>
         </motion.header>
 
-        {/* Enhanced Main Content Area */}
         <div className="flex-1 flex relative">
-          {/* Optimized Video Grid */}
           <motion.div 
             className={`flex-1 p-2 md:p-6 ${
               (showChat || showParticipants || showAI) && !isMobile ? 'mr-80' : ''
@@ -589,7 +664,6 @@ const Meeting = () => {
             layout
           >
             <div className={`grid gap-2 md:gap-4 h-full ${getGridClasses()}`}>
-              {/* Self Video with Premium Styling */}
               <OptimizedVideoTile
                 participant={{
                   id: 'self',
@@ -607,7 +681,6 @@ const Meeting = () => {
                 tileSize={getTileSize()}
               />
               
-              {/* Remote Participants */}
               {Array.from(remoteStreams.entries()).map(([peerId, stream]) => (
                 <OptimizedVideoTile
                   key={peerId}
@@ -628,7 +701,6 @@ const Meeting = () => {
                 />
               ))}
               
-              {/* Enhanced Placeholder Tiles */}
               {!isMobile && !settings.compactMode && Array.from({ length: Math.max(0, 3 - remoteStreams.size) }).map((_, i) => (
                 <motion.div
                   key={`placeholder-${i}`}
@@ -652,7 +724,6 @@ const Meeting = () => {
             </div>
           </motion.div>
 
-          {/* Enhanced Side Panels */}
           <AnimatePresence>
             {(showChat || showParticipants || showAI) && (
               <motion.div
@@ -680,7 +751,6 @@ const Meeting = () => {
           </AnimatePresence>
         </div>
 
-        {/* Enhanced Controls Bar */}
         <ControlsBar
           isMuted={isMuted}
           isVideoOff={isVideoOff}
