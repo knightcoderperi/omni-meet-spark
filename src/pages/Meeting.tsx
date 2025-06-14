@@ -57,7 +57,7 @@ const Meeting = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const isMobile = useIsMobile();
   
   const [meeting, setMeeting] = useState<Meeting | null>(null);
@@ -98,8 +98,6 @@ const Meeting = () => {
   } = useWebRTC();
 
   const { settings, getGridClasses } = useLayoutCustomization();
-
-  const { toggleTheme: _toggleTheme } = useTheme();
 
   useEffect(() => {
     if (!user) {
@@ -393,7 +391,7 @@ const Meeting = () => {
       <PreJoinScreen
         meeting={meeting}
         onJoin={handleJoinMeeting}
-        onThemeToggle={toggleTheme}
+        onThemeToggle={() => {}} // No-op since theme is fixed to dark
         theme={theme}
       />
     );
