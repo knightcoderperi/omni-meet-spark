@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gamepad2, Trophy, Star, RotateCcw, Clock, Grid3X3 } from 'lucide-react';
@@ -45,6 +44,17 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
   ];
   const [currentRiddle, setCurrentRiddle] = useState(0);
   const [riddleAnswer, setRiddleAnswer] = useState('');
+
+  // Auto-show games when waiting for approval
+  useEffect(() => {
+    if (waitingForApproval && !gameType) {
+      // Automatically show dots and boxes game when waiting for approval
+      setGameType('dotsboxes');
+    } else if (!waitingForApproval && gameType) {
+      // Hide games when approved (no longer waiting)
+      resetGame();
+    }
+  }, [waitingForApproval, gameType]);
 
   useEffect(() => {
     if (gameStarted && timeLeft > 0 && gameType !== 'dotsboxes') {
@@ -183,7 +193,8 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
     setCurrentQuestion(prev => prev + 1);
   };
 
-  if (!isVisible) return null;
+  // Don't show games if not waiting for approval (approved users)
+  if (!isVisible || !waitingForApproval) return null;
 
   // If Dots and Boxes is selected, render the dedicated component
   if (gameType === 'dotsboxes') {
