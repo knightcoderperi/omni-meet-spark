@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gamepad2, Trophy, Star, RotateCcw, Clock, Grid3X3 } from 'lucide-react';
@@ -194,24 +193,24 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
     setCurrentQuestion(prev => prev + 1);
   };
 
-  // Don't show games if not waiting for approval (approved users)
+  // Don't show games if not visible or not waiting for approval
   if (!isVisible || !waitingForApproval) return null;
 
   // If Dots and Boxes is selected, render the dedicated component
   if (gameType === 'dotsboxes') {
     return (
-      <div className="w-full max-w-4xl mx-auto space-y-4">
-        {/* Game Type Selector */}
-        <Card className="glass-premium theme-card p-4">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Gamepad2 className="w-6 h-6 text-gradient-electric" />
-            <h3 className="text-xl font-bold text-gradient-primary">
+      <div className="w-full max-w-4xl mx-auto space-y-4 px-4">
+        {/* Game Type Selector - Mobile Optimized */}
+        <Card className="glass-premium theme-card p-3 sm:p-4">
+          <div className="flex items-center justify-center space-x-2 mb-3 sm:mb-4">
+            <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 text-gradient-electric" />
+            <h3 className="text-lg sm:text-xl font-bold text-gradient-primary">
               {waitingForApproval ? 'While You Wait...' : 'Lobby Games'}
             </h3>
           </div>
 
           {waitingForApproval && (
-            <div className="theme-notification p-3 mb-4">
+            <div className="theme-notification p-2 sm:p-3 mb-3 sm:mb-4">
               <div className="flex items-center justify-center space-x-2 text-yellow-400">
                 <Clock className="w-4 h-4" />
                 <span className="text-sm">Waiting for host approval</span>
@@ -227,28 +226,29 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
               className="text-xs py-2 theme-button btn-primary-premium"
             >
               <Grid3X3 className="w-3 h-3 mr-1" />
-              Dots & Boxes
+              <span className="hidden sm:inline">Dots & Boxes</span>
+              <span className="sm:hidden">Dots</span>
             </Button>
             <Button
               onClick={() => startGame('memory')}
               variant="outline"
               className="text-xs py-2 theme-button btn-secondary-premium"
             >
-              🧠 Memory
+              🧠 <span className="hidden sm:inline">Memory</span>
             </Button>
             <Button
               onClick={() => startGame('math')}
               variant="outline"
               className="text-xs py-2 theme-button btn-secondary-premium"
             >
-              🔢 Math
+              🔢 <span className="hidden sm:inline">Math</span>
             </Button>
             <Button
               onClick={() => startGame('riddle')}
               variant="outline"
               className="text-xs py-2 theme-button btn-secondary-premium"
             >
-              🧩 Riddles
+              🧩 <span className="hidden sm:inline">Riddles</span>
             </Button>
           </div>
         </Card>
@@ -268,13 +268,13 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="w-full max-w-md mx-auto"
+        className="w-full max-w-md mx-auto px-4"
       >
-        <Card className="glass-premium theme-card p-6">
+        <Card className="glass-premium theme-card p-4 sm:p-6">
           <div className="text-center space-y-4">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <Gamepad2 className="w-6 h-6 text-gradient-electric" />
-              <h3 className="text-xl font-bold text-gradient-primary">
+            <div className="flex items-center justify-center space-x-2 mb-3 sm:mb-4">
+              <Gamepad2 className="w-5 h-5 sm:w-6 sm:h-6 text-gradient-electric" />
+              <h3 className="text-lg sm:text-xl font-bold text-gradient-primary">
                 {waitingForApproval ? 'While You Wait...' : 'Lobby Games'}
               </h3>
             </div>
@@ -295,29 +295,29 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
                   {waitingForApproval ? 'Keep yourself entertained!' : 'Play a quick game while waiting!'}
                 </p>
                 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-2 sm:gap-3">
                   <Button
                     onClick={() => setGameType('dotsboxes')}
-                    className="btn-primary-premium py-3"
+                    className="btn-primary-premium py-2 sm:py-3 text-sm sm:text-base"
                   >
                     <Grid3X3 className="w-4 h-4 mr-2" />
                     🎯 Dots & Boxes (Multiplayer)
                   </Button>
                   <Button
                     onClick={() => startGame('memory')}
-                    className="btn-primary-premium py-3"
+                    className="btn-primary-premium py-2 sm:py-3 text-sm sm:text-base"
                   >
                     🧠 Memory Match
                   </Button>
                   <Button
                     onClick={() => startGame('math')}
-                    className="btn-primary-premium py-3"
+                    className="btn-primary-premium py-2 sm:py-3 text-sm sm:text-base"
                   >
                     🔢 Quick Math
                   </Button>
                   <Button
                     onClick={() => startGame('riddle')}
-                    className="btn-primary-premium py-3"
+                    className="btn-primary-premium py-2 sm:py-3 text-sm sm:text-base"
                   >
                     🧩 Brain Riddles
                   </Button>
@@ -325,9 +325,9 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between text-sm sm:text-base">
                   <div className="flex items-center space-x-2">
-                    <Star className="w-5 h-5 text-yellow-400" />
+                    <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
                     <span className="theme-text-primary font-semibold">Score: {score}</span>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -341,8 +341,8 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
                     animate={{ scale: 1, opacity: 1 }}
                     className="text-center space-y-4"
                   >
-                    <Trophy className="w-12 h-12 text-yellow-400 mx-auto" />
-                    <h4 className="text-xl font-bold theme-text-primary">Game Over!</h4>
+                    <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-400 mx-auto" />
+                    <h4 className="text-lg sm:text-xl font-bold theme-text-primary">Game Over!</h4>
                     <p className="theme-text-secondary">Final Score: {score}</p>
                     <Button
                       onClick={resetGame}
@@ -356,13 +356,13 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
                   <>
                     {gameType === 'memory' && (
                       <div className="space-y-4">
-                        <h4 className="font-semibold theme-text-primary">Memory Match</h4>
-                        <div className="grid grid-cols-4 gap-2">
+                        <h4 className="font-semibold theme-text-primary text-sm sm:text-base">Memory Match</h4>
+                        <div className="grid grid-cols-4 gap-1 sm:gap-2 max-w-xs mx-auto">
                           {memoryCards.map((card) => (
                             <motion.button
                               key={card.id}
                               onClick={() => handleMemoryCardClick(card.id)}
-                              className={`aspect-square rounded-lg border-2 text-2xl font-bold transition-all duration-300 ${
+                              className={`aspect-square rounded-lg border-2 text-lg sm:text-2xl font-bold transition-all duration-300 ${
                                 card.flipped || card.matched
                                   ? 'bg-white border-purple-400 text-gray-800'
                                   : 'theme-card-background border-purple-600 hover:bg-purple-700/50'
@@ -380,22 +380,22 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
 
                     {gameType === 'math' && (
                       <div className="space-y-4">
-                        <h4 className="font-semibold theme-text-primary">Quick Math</h4>
+                        <h4 className="font-semibold theme-text-primary text-sm sm:text-base">Quick Math</h4>
                         <div className="text-center">
-                          <p className="text-2xl font-bold theme-text-primary mb-4">{mathQuestion.question} = ?</p>
+                          <p className="text-xl sm:text-2xl font-bold theme-text-primary mb-4">{mathQuestion.question} = ?</p>
                           <div className="flex space-x-2">
                             <input
                               type="number"
                               value={userAnswer}
                               onChange={(e) => setUserAnswer(e.target.value)}
-                              className="input-premium flex-1 px-3 py-2"
+                              className="input-premium flex-1 px-3 py-2 text-sm sm:text-base"
                               placeholder="Your answer"
                               onKeyPress={(e) => e.key === 'Enter' && handleMathAnswer()}
                             />
                             <Button
                               onClick={handleMathAnswer}
                               disabled={!userAnswer}
-                              className="btn-primary-premium"
+                              className="btn-primary-premium text-sm sm:text-base"
                             >
                               Submit
                             </Button>
@@ -406,9 +406,9 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
 
                     {gameType === 'riddle' && (
                       <div className="space-y-4">
-                        <h4 className="font-semibold theme-text-primary">Brain Riddles</h4>
+                        <h4 className="font-semibold theme-text-primary text-sm sm:text-base">Brain Riddles</h4>
                         <div className="text-center">
-                          <p className="text-sm theme-text-secondary mb-4 leading-relaxed">
+                          <p className="text-sm theme-text-secondary mb-4 leading-relaxed px-2">
                             {riddles[currentRiddle].question}
                           </p>
                           <div className="flex space-x-2">
@@ -416,14 +416,14 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
                               type="text"
                               value={riddleAnswer}
                               onChange={(e) => setRiddleAnswer(e.target.value)}
-                              className="input-premium flex-1 px-3 py-2"
+                              className="input-premium flex-1 px-3 py-2 text-sm sm:text-base"
                               placeholder="Your answer"
                               onKeyPress={(e) => e.key === 'Enter' && handleRiddleAnswer()}
                             />
                             <Button
                               onClick={handleRiddleAnswer}
                               disabled={!riddleAnswer.trim()}
-                              className="btn-primary-premium"
+                              className="btn-primary-premium text-sm sm:text-base"
                             >
                               Submit
                             </Button>
@@ -439,7 +439,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
                     onClick={resetGame}
                     variant="outline"
                     size="sm"
-                    className="w-full btn-ghost-premium"
+                    className="w-full btn-ghost-premium text-sm"
                   >
                     End Game
                   </Button>

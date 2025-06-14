@@ -39,8 +39,64 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
   const [showLobby, setShowLobby] = useState(false);
   const [hostNotes, setHostNotes] = useState<{ [key: string]: string }>({});
   const [showGames, setShowGames] = useState(true);
+  const [isWaitingForApproval, setIsWaitingForApproval] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Check if current user is waiting for approval
+  useEffect(() => {
+    const checkUserApprovalStatus = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('lobby_queue')
+          .select('approval_status')
+          .eq('meeting_id', meetingId)
+          .eq('user_id', user.id)
+          .eq('approval_status', 'pending')
+          .maybeSingle();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error checking approval status:', error);
+          return;
+        }
+
+        setIsWaitingForApproval(!!data);
+      } catch (error) {
+        console.error('Error checking user approval status:', error);
+      }
+    };
+
+    checkUserApprovalStatus();
+    
+    // Set up real-time listener for user's approval status
+    const channel = supabase
+      .channel('user-approval-status')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'lobby_queue',
+          filter: `meeting_id=eq.${meetingId}.and.user_id=eq.${user?.id}`
+        },
+        (payload) => {
+          if (payload.eventType === 'UPDATE' && payload.new.approval_status === 'approved') {
+            setIsWaitingForApproval(false);
+            toast({
+              title: "Welcome to the meeting!",
+              description: "You've been approved by the host.",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [meetingId, user?.id]);
 
   useEffect(() => {
     if (!isHost) return;
@@ -222,6 +278,8 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
     return minutes < 1 ? 'Just joined' : `${minutes} min`;
   };
 
+  const shouldShowGames = !isHost && isWaitingForApproval;
+
   if (!isHost || !showLobby || pendingParticipants.length === 0) {
     return null;
   }
@@ -347,18 +405,19 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
       )}
 
       {/* Lobby Games for Waiting Participants */}
-      {showGames && (
+      {shouldShowGames && (
         <motion.div
           className="fixed bottom-6 left-6 right-6 z-30 pointer-events-none"
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
           transition={{ delay: 0.5 }}
         >
           <div className="pointer-events-auto max-w-4xl mx-auto">
             <LobbyGame
               meetingId={meetingId}
               isVisible={true}
-              waitingForApproval={pendingParticipants.some(p => p.user_id === user?.id)}
+              waitingForApproval={true}
             />
           </div>
         </motion.div>
