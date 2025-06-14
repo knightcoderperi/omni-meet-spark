@@ -139,9 +139,51 @@ export const useAIFeatures = (meetingId: string) => {
     }
   }, [meetingId, toast]);
 
-  const generateSummary = useCallback(async () => {
-    return sendAIMessage('Generate a smart summary of the meeting so far', 'smart_summary');
-  }, [sendAIMessage]);
+  const generateCatchUp = useCallback(async (joinTime?: number) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-catchup-summary', {
+        body: { 
+          meetingId,
+          joinTime: joinTime || 0
+        }
+      });
+
+      if (error) throw error;
+
+      // Store the catch-up summary as a conversation
+      const conversationData = await supabase
+        .from('ai_conversations')
+        .insert({
+          meeting_id: meetingId,
+          message: 'Generate catch-up summary based on meeting discussion',
+          ai_feature_type: 'catch_me_up',
+          response: data.summary
+        })
+        .select()
+        .single();
+
+      if (conversationData.data) {
+        setConversations(prev => [...prev, conversationData.data]);
+      }
+
+      toast({
+        title: "🎯 Catch Me Up Ready",
+        description: "Summary generated based on meeting discussion",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error generating catch-up summary:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate catch-up summary",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [meetingId, toast]);
 
   const getInsights = useCallback(async () => {
     return sendAIMessage('Analyze the meeting and provide intelligent insights', 'intelligent_insights');
@@ -156,7 +198,7 @@ export const useAIFeatures = (meetingId: string) => {
     fetchInsights,
     fetchTranscriptions,
     sendAIMessage,
-    generateSummary,
+    generateCatchUp,
     getInsights
   };
 };

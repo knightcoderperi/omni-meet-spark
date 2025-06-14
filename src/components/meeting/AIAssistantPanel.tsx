@@ -2,9 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Sparkles, FileText, Mic, Brain, MessageSquare, 
-  Send, Loader2, Clock, TrendingUp, Users, Target,
-  ChevronDown, ChevronRight
+  Brain, Mic, MessageSquare, Send, Loader2, Clock, TrendingUp, 
+  Users, Target, ChevronDown, ChevronRight, Zap, History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,14 +15,16 @@ interface AIAssistantPanelProps {
   meetingId: string;
   isVisible: boolean;
   onClose: () => void;
+  userJoinTime?: number;
 }
 
 const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
   meetingId,
   isVisible,
-  onClose
+  onClose,
+  userJoinTime = 0
 }) => {
-  const [activeTab, setActiveTab] = useState<'summary' | 'transcription' | 'insights'>('summary');
+  const [activeTab, setActiveTab] = useState<'catchup' | 'transcription' | 'insights'>('catchup');
   const [message, setMessage] = useState('');
   const [isTranscriptionOpen, setIsTranscriptionOpen] = useState(false);
   const [isInsightsOpen, setIsInsightsOpen] = useState(false);
@@ -37,7 +38,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
     fetchInsights,
     fetchTranscriptions,
     sendAIMessage,
-    generateSummary,
+    generateCatchUp,
     getInsights
   } = useAIFeatures(meetingId);
 
@@ -52,12 +53,16 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
   const handleSendMessage = async () => {
     if (!message.trim()) return;
     
-    await sendAIMessage(message, activeTab === 'summary' ? 'smart_summary' : 'intelligent_insights');
+    await sendAIMessage(message, activeTab === 'catchup' ? 'catch_me_up' : 'intelligent_insights');
     setMessage('');
   };
 
+  const handleGenerateCatchUp = async () => {
+    await generateCatchUp(userJoinTime);
+  };
+
   const tabs = [
-    { id: 'summary', label: 'Smart Summary', icon: FileText },
+    { id: 'catchup', label: 'Catch Me Up', icon: Zap },
     { id: 'transcription', label: 'Transcription', icon: Mic },
     { id: 'insights', label: 'Insights', icon: Brain }
   ];
@@ -77,7 +82,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
             <div className="flex items-center space-x-2">
-              <Sparkles className="w-6 h-6 text-purple-500" />
+              <Brain className="w-6 h-6 text-purple-500" />
               <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
                 AI Assistant
               </h2>
@@ -110,42 +115,48 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
 
           {/* Content */}
           <div className="flex-1 overflow-hidden">
-            {activeTab === 'summary' && (
+            {activeTab === 'catchup' && (
               <div className="h-full flex flex-col">
                 <div className="p-4">
                   <Button
-                    onClick={generateSummary}
+                    onClick={handleGenerateCatchUp}
                     disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700"
+                    className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
                   >
                     {isLoading ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
-                      <FileText className="w-4 h-4 mr-2" />
+                      <Zap className="w-4 h-4 mr-2" />
                     )}
-                    Generate Smart Summary
+                    Catch Me Up
                   </Button>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
+                    Get up to speed on meeting discussion
+                  </p>
                 </div>
                 
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {conversations
-                    .filter(conv => conv.ai_feature_type === 'smart_summary')
+                    .filter(conv => conv.ai_feature_type === 'catch_me_up')
                     .map((conv) => (
-                      <Card key={conv.id} className="bg-slate-50 dark:bg-slate-800">
+                      <Card key={conv.id} className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-200 dark:border-orange-700">
                         <CardContent className="p-4">
                           <div className="flex items-start space-x-3">
-                            <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                              <Sparkles className="w-4 h-4 text-white" />
+                            <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                              <Zap className="w-4 h-4 text-white" />
                             </div>
                             <div className="flex-1">
-                              <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">
-                                {conv.message}
-                              </p>
+                              <div className="flex items-center space-x-2 mb-2">
+                                <History className="w-4 h-4 text-orange-600" />
+                                <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                                  Catch Me Up Summary
+                                </span>
+                              </div>
                               {conv.response && (
                                 <div className="bg-white dark:bg-slate-700 rounded-lg p-3">
-                                  <p className="text-sm text-slate-800 dark:text-white">
+                                  <div className="text-sm text-slate-800 dark:text-white whitespace-pre-wrap">
                                     {conv.response}
-                                  </p>
+                                  </div>
                                 </div>
                               )}
                               <p className="text-xs text-slate-400 mt-2">
@@ -156,6 +167,15 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                         </CardContent>
                       </Card>
                     ))}
+                  
+                  {conversations.filter(conv => conv.ai_feature_type === 'catch_me_up').length === 0 && (
+                    <div className="text-center py-8">
+                      <Zap className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+                      <p className="text-slate-500 dark:text-slate-400 text-sm">
+                        Click "Catch Me Up" to get a summary of what you've missed in the meeting
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-4 border-t border-slate-200 dark:border-slate-700">
@@ -164,15 +184,15 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                       type="text"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Ask for a specific summary..."
-                      className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="Ask about specific topics..."
+                      className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     />
                     <Button
                       onClick={handleSendMessage}
                       disabled={isLoading || !message.trim()}
                       size="sm"
-                      className="bg-purple-500 hover:bg-purple-600"
+                      className="bg-orange-500 hover:bg-orange-600"
                     >
                       <Send className="w-4 h-4" />
                     </Button>

@@ -22,7 +22,6 @@ import PreJoinScreen from '@/components/meeting/PreJoinScreen';
 import MeetingLobby from '@/components/meeting/MeetingLobby';
 import MeetingInsights from '@/components/meeting/MeetingInsights';
 import Whiteboard from '@/components/whiteboard/Whiteboard';
-import SmartSummary from '@/components/meeting/SmartSummary';
 import TaskGenerator from '@/components/meeting/TaskGenerator';
 import TranslationChat from '@/components/meeting/TranslationChat';
 import ShareLinkModal from '@/components/meeting/ShareLinkModal';
@@ -70,7 +69,6 @@ const Meeting = () => {
   const [showAI, setShowAI] = useState(false);
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
-  const [showSmartSummary, setShowSmartSummary] = useState(false);
   const [showTaskGenerator, setShowTaskGenerator] = useState(false);
   const [showTranslationChat, setShowTranslationChat] = useState(false);
   const [showLayoutPanel, setShowLayoutPanel] = useState(false);
@@ -365,16 +363,6 @@ const Meeting = () => {
       </AnimatePresence>
 
       {/* Meeting Enhancement Modals */}
-      <AnimatePresence>
-        {showSmartSummary && (
-          <SmartSummary
-            meetingId={meeting?.id || ''}
-            isVisible={showSmartSummary}
-            onClose={() => setShowSmartSummary(false)}
-          />
-        )}
-      </AnimatePresence>
-
       <AnimatePresence>
         {showTaskGenerator && (
           <TaskGenerator
@@ -683,7 +671,8 @@ const Meeting = () => {
                   <AIAssistantPanel 
                     meetingId={meeting?.id || ''}
                     isVisible={showAI}
-                    onClose={() => setShowAI(false)} 
+                    onClose={() => setShowAI(false)}
+                    userJoinTime={userJoinTime}
                   />
                 )}
               </motion.div>
