@@ -76,30 +76,15 @@ const Meeting = () => {
   const [loading, setLoading] = useState(true);
   const [hasJoined, setHasJoined] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [isRecording, setIsRecording] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const [showParticipants, setShowParticipants] = useState(false);
-  const [showAI, setShowAI] = useState(false);
-  const [showWhiteboard, setShowWhiteboard] = useState(false);
-  const [showTaskGenerator, setShowTaskGenerator] = useState(false);
-  const [showTranslationChat, setShowTranslationChat] = useState(false);
-  const [showLayoutPanel, setShowLayoutPanel] = useState(false);
-  const [handRaised, setHandRaised] = useState(false);
-  const [meetingDuration, setMeetingDuration] = useState(0);
-  const [reactions, setReactions] = useState<Array<{id: string, emoji: string, x: number, y: number}>>([]);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [showLateJoinerWelcome, setShowLateJoinerWelcome] = useState(false);
-  const [showCatchMeUp, setShowCatchMeUp] = useState(false);
-  const [userJoinTime, setUserJoinTime] = useState(0);
-  const [hasShownWelcome, setHasShownWelcome] = useState(false);
-  const [hostJoinTime, setHostJoinTime] = useState<number | null>(null);
-  const [catchMeUpShown, setCatchMeUpShown] = useState(false);
-
+  const [participantName, setParticipantName] = useState('');
+  
   const {
     localStream,
     remoteStreams,
     connectedPeers,
+    participants: webrtcParticipants,
     connectionState,
+    roomStatus,
     isMuted,
     isVideoOff,
     isScreenSharing,
@@ -109,7 +94,12 @@ const Meeting = () => {
     stopScreenShare,
     initializeWebRTC,
     cleanupWebRTC
-  } = useWebRTC(meeting?.id, user?.id);
+  } = useWebRTC(
+    meetingCode, 
+    user?.id, 
+    participantName, 
+    meeting?.host_id === user?.id
+  );
 
   const { settings, getGridClasses } = useLayoutCustomization();
 
@@ -334,6 +324,15 @@ const Meeting = () => {
 
   const handleJoinMeeting = async (userName: string, audioOnly: boolean) => {
     try {
+      console.log('🚀 Joining meeting with parameters:', {
+        userName,
+        audioOnly,
+        meetingCode,
+        userId: user?.id,
+        isHost: meeting?.host_id === user?.id
+      });
+
+      setParticipantName(userName);
       const joinTime = meetingDuration;
       setUserJoinTime(joinTime);
       
@@ -373,15 +372,23 @@ const Meeting = () => {
       // Refresh participants list
       fetchParticipants();
       
+      // Show success message with room confirmation
       toast({
-        title: "Joined meeting",
-        description: `Welcome to ${meeting?.title}`,
+        title: "Successfully joined meeting room",
+        description: `Connected to room ${meetingCode} as ${userName}`,
       });
+
+      console.log('✅ Successfully joined meeting room:', {
+        meetingCode,
+        roomStatus,
+        participantName: userName
+      });
+      
     } catch (error) {
-      console.error('Error joining meeting:', error);
+      console.error('❌ Error joining meeting:', error);
       toast({
-        title: "Error",
-        description: "Failed to access camera/microphone",
+        title: "Failed to join meeting",
+        description: "Could not connect to the meeting room. Please check your internet connection and try again.",
         variant: "destructive"
       });
     }
@@ -493,6 +500,48 @@ const Meeting = () => {
     const missedTime = getMissedDuration();
     return missedTime > 30 && !catchMeUpShown; // Show if missed more than 30 seconds and not shown before
   };
+
+  // Enhanced participant list that combines database and WebRTC participants
+  const getAllParticipants = () => {
+    const combinedParticipants = new Map();
+    
+    // Add database participants
+    participants.forEach(p => {
+      combinedParticipants.set(p.id, {
+        ...p,
+        stream: p.id === user?.id ? localStream : remoteStreams.get(p.id)
+      });
+    });
+    
+    // Add WebRTC participants
+    webrtcParticipants.forEach((p, id) => {
+      if (!combinedParticipants.has(id)) {
+        combinedParticipants.set(id, {
+          id,
+          name: p.name || `Participant ${id.slice(0, 8)}`,
+          isHost: p.isHost || false,
+          isMuted: false,
+          isVideoOff: false,
+          handRaised: false,
+          stream: id === user?.id ? localStream : remoteStreams.get(id)
+        });
+      }
+    });
+    
+    return Array.from(combinedParticipants.values());
+  };
+
+  // Enhanced connection status display
+  useEffect(() => {
+    console.log('🎯 Meeting Room Status Update:', {
+      meetingCode,
+      roomStatus,
+      connectionState,
+      connectedPeers: connectedPeers.size,
+      remoteStreams: remoteStreams.size,
+      webrtcParticipants: webrtcParticipants.size
+    });
+  }, [meetingCode, roomStatus, connectionState, connectedPeers.size, remoteStreams.size, webrtcParticipants.size]);
 
   if (loading) {
     return (
@@ -787,7 +836,7 @@ const Meeting = () => {
               <OptimizedVideoTile
                 participant={{
                   id: 'self',
-                  name: 'You',
+                  name: participantName || 'You',
                   isHost: meeting?.host_id === user?.id,
                   isMuted,
                   isVideoOff,
@@ -801,23 +850,24 @@ const Meeting = () => {
                 tileSize={getTileSize()}
               />
               
-              {/* Render remote participants from remoteStreams */}
+              {/* Render remote participants with enhanced info */}
               {Array.from(remoteStreams.entries()).map(([peerId, stream]) => {
-                const participant = participants.find(p => p.id === peerId) || {
+                const participant = webrtcParticipants.get(peerId) || {
                   id: peerId,
                   name: `Participant ${peerId.slice(0, 8)}`,
-                  isHost: false,
-                  isMuted: false,
-                  isVideoOff: false,
-                  handRaised: false,
-                  stream
+                  isHost: false
                 };
 
                 return (
                   <OptimizedVideoTile
                     key={peerId}
                     participant={{
-                      ...participant,
+                      id: peerId,
+                      name: participant.name,
+                      isHost: participant.isHost,
+                      isMuted: false,
+                      isVideoOff: false,
+                      handRaised: false,
                       stream
                     }}
                     isLocal={false}
@@ -829,7 +879,7 @@ const Meeting = () => {
                 );
               })}
               
-              {/* Show placeholder tiles for empty spaces */}
+              {/* Enhanced placeholder tiles with room info */}
               {!isMobile && !settings.compactMode && Array.from({ length: Math.max(0, 6 - remoteStreams.size) }).map((_, i) => (
                 <motion.div
                   key={`placeholder-${i}`}
@@ -848,6 +898,9 @@ const Meeting = () => {
                     </motion.div>
                     <p className="text-xs md:text-sm">Waiting for participants...</p>
                     <p className="text-xs text-slate-400 mt-1">
+                      Room: {meetingCode}
+                    </p>
+                    <p className="text-xs text-slate-400">
                       Connected: {connectedPeers.size} peers
                     </p>
                   </div>
@@ -882,6 +935,27 @@ const Meeting = () => {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Room Status Indicator */}
+        {roomStatus.joined && (
+          <motion.div
+            className="absolute top-20 left-4 z-50"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <div className="bg-green-500/90 text-white px-4 py-2 rounded-lg backdrop-blur-sm">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                <span className="text-sm font-medium">
+                  Connected to room {roomStatus.meetingCode}
+                </span>
+                <span className="text-xs opacity-80">
+                  ({roomStatus.participantCount} participants)
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         <ControlsBar
           isMuted={isMuted}
