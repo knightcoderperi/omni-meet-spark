@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Brain, Mic, MicOff, Play, Pause, Download, 
   Volume2, VolumeX, Sparkles, FileText, Clock,
-  Loader2, AlertCircle, CheckCircle, X
+  Loader2, AlertCircle, CheckCircle, X, Lightbulb, MessageSquare
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
