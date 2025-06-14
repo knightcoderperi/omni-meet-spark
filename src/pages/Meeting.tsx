@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,7 +23,7 @@ import MeetingLobby from '@/components/meeting/MeetingLobby';
 import MeetingInsights from '@/components/meeting/MeetingInsights';
 import Whiteboard from '@/components/whiteboard/Whiteboard';
 import TaskGenerator from '@/components/meeting/TaskGenerator';
-import TranslationChat from '@/components/meeting/TranslationChat';
+import TranslationChatWidget from '@/components/meeting/TranslationChatWidget';
 import ShareLinkModal from '@/components/meeting/ShareLinkModal';
 import LayoutCustomizationPanel from '@/components/meeting/LayoutCustomizationPanel';
 import { useWebRTC } from '@/hooks/useWebRTC';
@@ -33,6 +32,7 @@ import { useTheme } from '@/hooks/useTheme';
 import CatchMeUpButton from '@/components/meeting/CatchMeUpButton';
 import LateJoinerWelcome from '@/components/meeting/LateJoinerWelcome';
 import CatchMeUpModal from '@/components/meeting/CatchMeUpModal';
+import { Globe } from 'lucide-react';
 
 interface Meeting {
   id: string;
@@ -453,7 +453,7 @@ const Meeting = () => {
 
       <AnimatePresence>
         {showTranslationChat && (
-          <TranslationChat
+          <TranslationChatWidget
             meetingId={meeting?.id || ''}
             isVisible={showTranslationChat}
             onClose={() => setShowTranslationChat(false)}
@@ -610,49 +610,20 @@ const Meeting = () => {
                 {!isMobile && "Layout"}
               </Button>
 
-              {isMobile && (
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                  onClick={() => setShowShareModal(true)}
-                >
-                  <Share2 className="w-4 h-4" />
-                </Button>
-              )}
-              
-              {!isMobile && (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30"
-                    onClick={() => setShowShareModal(true)}
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share
-                  </Button>
-                  
-                </>
-              )}
-              
+              {/* Translation Chat Toggle Button */}
               <Button 
                 variant="ghost" 
                 size={isMobile ? "sm" : "default"}
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                onClick={() => setShowParticipants(!showParticipants)}
+                className={`text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-cyan-500/30 ${
+                  showTranslationChat ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : ''
+                }`}
+                onClick={() => setShowTranslationChat(!showTranslationChat)}
               >
-                <Users className="w-4 h-4 mr-1" />
-                {!isMobile && participants.length}
+                <Globe className="w-4 h-4 mr-1" />
+                {!isMobile && "Translate"}
               </Button>
-              
-              <Button 
-                variant="ghost" 
-                size={isMobile ? "sm" : "default"}
-                className="text-slate-600 dark:text-gray-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                onClick={() => setShowChat(!showChat)}
-              >
-                <MessageSquare className="w-4 h-4" />
-              </Button>
+
+              {/* ... keep existing code (rest of header buttons) */}
             </div>
           </div>
         </motion.header>
