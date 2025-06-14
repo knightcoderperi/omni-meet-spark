@@ -58,10 +58,10 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
   }, [waitingForApproval, gameType]);
 
   useEffect(() => {
-    if (gameStarted && timeLeft > 0 && gameType !== 'dotsboxes') {
+    if (gameStarted && timeLeft > 0 && gameType && gameType !== 'dotsboxes') {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && gameType !== 'dotsboxes') {
+    } else if (timeLeft === 0 && gameType && gameType !== 'dotsboxes') {
       setGameOver(true);
     }
   }, [gameStarted, timeLeft, gameType]);
