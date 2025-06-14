@@ -19,7 +19,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
   isVisible, 
   waitingForApproval = false 
 }) => {
-  const [gameType, setGameType] = useState<GameType>('dotsboxes');
+  const [gameType, setGameType] = useState<GameType | null>(null);
   const [score, setScore] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -126,6 +126,7 @@ const LobbyGame: React.FC<LobbyGameProps> = ({
     setUserAnswer('');
     setRiddleAnswer('');
     setCurrentRiddle(0);
+    setGameType(null);
   };
 
   const handleMemoryCardClick = (cardId: number) => {
