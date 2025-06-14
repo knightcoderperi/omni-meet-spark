@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -124,13 +125,13 @@ const Meeting = () => {
     
     try {
       // Check if host has already joined by looking at meeting participants
-      const { data: meetingData } = await supabase
+      const { data: meetingData, error } = await supabase
         .from('meetings')
-        .select('host_id')
+        .select('id, host_id')
         .eq('meeting_code', meetingCode)
         .single();
 
-      if (meetingData) {
+      if (meetingData && meetingData.id && meetingData.host_id) {
         const { data: hostParticipant } = await supabase
           .from('meeting_participants')
           .select('joined_at')
