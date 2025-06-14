@@ -1,28 +1,19 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Video, VideoOff, Mic, MicOff, Settings, Monitor, 
-  Sun, Moon, Volume2, Camera, User
-} from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Monitor, User, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-interface Meeting {
-  id: string;
-  title: string;
-  meeting_code: string;
-  host_id: string;
-  is_active: boolean;
-}
+import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PreJoinScreenProps {
-  meeting: Meeting | null;
+  meeting: any;
   onJoin: (userName: string, audioOnly: boolean) => void;
   onThemeToggle: () => void;
-  theme: 'light' | 'dark';
+  theme: string;
 }
 
 const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
@@ -31,357 +22,207 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
   onThemeToggle,
   theme
 }) => {
-  const [userName, setUserName] = useState('');
-  const [isVideoOff, setIsVideoOff] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const [userName, setUserName] = useState(user?.user_metadata?.full_name || user?.email || '');
+  const [audioOnly, setAudioOnly] = useState(false);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
-  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
-  const [selectedVideoDevice, setSelectedVideoDevice] = useState('');
-  
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [devicePermissions, setDevicePermissions] = useState({
+    camera: false,
+    microphone: false
+  });
 
   useEffect(() => {
-    initializePreview();
-    getDevices();
+    checkDevicePermissions();
+    if (!audioOnly) {
+      startPreview();
+    }
     
     return () => {
       if (previewStream) {
         previewStream.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [audioOnly]);
 
-  const initializePreview = async () => {
+  const checkDevicePermissions = async () => {
+    try {
+      const permissions = await navigator.permissions.query({ name: 'camera' as PermissionName });
+      setDevicePermissions(prev => ({
+        ...prev,
+        camera: permissions.state === 'granted'
+      }));
+    } catch (error) {
+      console.warn('Could not check camera permissions:', error);
+    }
+  };
+
+  const startPreview = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: !isVideoOff,
+        video: !audioOnly,
         audio: true
       });
-      
       setPreviewStream(stream);
-      
-      if (videoRef.current && !isVideoOff) {
-        videoRef.current.srcObject = stream;
-      }
+      setDevicePermissions({
+        camera: !audioOnly,
+        microphone: true
+      });
     } catch (error) {
       console.error('Error accessing media devices:', error);
     }
   };
 
-  const getDevices = async () => {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioInputs = devices.filter(device => device.kind === 'audioinput');
-      const videoInputs = devices.filter(device => device.kind === 'videoinput');
-      
-      setAudioDevices(audioInputs);
-      setVideoDevices(videoInputs);
-      
-      if (audioInputs.length > 0) setSelectedAudioDevice(audioInputs[0].deviceId);
-      if (videoInputs.length > 0) setSelectedVideoDevice(videoInputs[0].deviceId);
-    } catch (error) {
-      console.error('Error getting devices:', error);
-    }
-  };
-
-  const toggleVideo = async () => {
-    const newVideoState = !isVideoOff;
-    setIsVideoOff(newVideoState);
-    
+  const handleJoin = () => {
     if (previewStream) {
       previewStream.getTracks().forEach(track => track.stop());
     }
-    
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: !newVideoState ? { deviceId: selectedVideoDevice } : false,
-        audio: { deviceId: selectedAudioDevice }
-      });
-      
-      setPreviewStream(stream);
-      
-      if (videoRef.current && !newVideoState) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (error) {
-      console.error('Error toggling video:', error);
-    }
-  };
-
-  const toggleMute = () => {
-    if (previewStream) {
-      const audioTrack = previewStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = isMuted;
-        setIsMuted(!isMuted);
-      }
-    }
-  };
-
-  const handleJoin = async () => {
-    if (!userName.trim()) {
-      return;
-    }
-    
-    setIsLoading(true);
-    await onJoin(userName, isVideoOff);
-  };
-
-  const testSpeaker = () => {
-    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEfBSuBzvPXiTQIG2m98OScSwwOUarm7blnIAY9k9n1y3UqBSl+zPLbizEIF2+/7eCcUAwKVK3r8rBrHgU7k9n1y3UqBSl+zPLbizEIF2+/7eCcUAwKVK3r8rBrHgU7l9v1yXEoBSJ+zPHaizEIF2+/7eCcUAwKVK3r8rBrHgU7l9v1yXEoBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEoBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEoBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEoBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEoBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7l9v1yXEqBSJ+zPHaizEIF26/7uGbUAwKVK3r8rBrHgU7');
-    audio.play().catch(() => {
-      console.log('Speaker test requires user interaction');
-    });
-  };
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'UN';
+    onJoin(userName, audioOnly);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center p-6">
-      {/* Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
-          className="absolute top-20 left-20 w-64 h-64 bg-blue-400/20 dark:bg-blue-500/30 rounded-full blur-3xl"
-          animate={{ 
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 20, repeat: Infinity }}
-        />
-        <motion.div 
-          className="absolute bottom-20 right-20 w-64 h-64 bg-purple-400/20 dark:bg-purple-500/30 rounded-full blur-3xl"
-          animate={{ 
-            x: [0, -50, 0],
-            y: [0, -30, 0],
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ duration: 25, repeat: Infinity }}
-        />
-      </div>
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 flex items-center justify-center p-4">
       <motion.div
-        className="w-full max-w-4xl"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        className="w-full max-w-4xl"
       >
-        <Card className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border-slate-200/50 dark:border-white/10 shadow-2xl">
-          <CardContent className="p-8">
-            {/* Header */}
+        <Card className="bg-white/95 dark:bg-black/30 backdrop-blur-2xl border border-slate-200/50 dark:border-white/10 shadow-2xl">
+          <div className="p-8">
             <div className="text-center mb-8">
-              <motion.div
-                className="flex items-center justify-between mb-6"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                    <Video className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
-                      {meeting?.title || 'Join Meeting'}
-                    </h1>
-                    <p className="text-slate-600 dark:text-gray-400 text-sm">
-                      Get ready to join • {meeting?.meeting_code}
-                    </p>
-                  </div>
-                </div>
-                
-                <Button
-                  variant="ghost"
-                  onClick={onThemeToggle}
-                  className="relative w-12 h-6 rounded-full p-0 bg-slate-200 dark:bg-slate-700"
-                >
-                  <motion.div
-                    className="absolute w-5 h-5 bg-gradient-to-r from-yellow-400 to-orange-500 dark:from-blue-400 dark:to-blue-600 rounded-full shadow-lg"
-                    animate={{
-                      x: theme === 'dark' ? 2 : 26,
-                    }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-between px-1">
-                    <Moon className="w-3 h-3 text-slate-600" />
-                    <Sun className="w-3 h-3 text-slate-600" />
-                  </div>
-                </Button>
-              </motion.div>
+              <motion.img 
+                src="/lovable-uploads/2d81a553-9d58-4ba7-94bd-f014ebe9d554.png" 
+                alt="OmniMeet" 
+                className="h-12 w-auto object-contain mx-auto mb-4"
+                whileHover={{ scale: 1.05 }}
+              />
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent mb-2">
+                Join Meeting
+              </h1>
+              <p className="text-slate-600 dark:text-gray-400">
+                {meeting?.title || 'Meeting Room'}
+              </p>
+              <div className="inline-flex items-center space-x-2 mt-2 bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-full">
+                <Shield className="w-4 h-4 text-cyan-500" />
+                <span className="text-sm font-mono text-slate-600 dark:text-gray-400">
+                  {meeting?.meeting_code}
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Video Preview */}
-              <motion.div
-                className="space-y-4"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">
-                  Camera Preview
-                </h3>
-                
-                <Card className="relative overflow-hidden bg-black aspect-video">
-                  {!isVideoOff ? (
+              <div className="space-y-4">
+                <div className="relative aspect-video bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden">
+                  {previewStream && !audioOnly ? (
                     <video
-                      ref={videoRef}
+                      ref={(video) => {
+                        if (video && previewStream) {
+                          video.srcObject = previewStream;
+                        }
+                      }}
                       autoPlay
                       muted
-                      playsInline
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900">
-                      <motion.div 
-                        className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-2xl"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.5 }}
-                      >
-                        {getInitials(userName)}
-                      </motion.div>
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <User className="w-8 h-8 text-white" />
+                        </div>
+                        <p className="text-slate-600 dark:text-gray-400">
+                          {audioOnly ? 'Audio Only Mode' : 'Camera Preview'}
+                        </p>
+                      </div>
                     </div>
                   )}
                   
-                  {/* Preview Controls */}
+                  {/* Controls overlay */}
                   <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
                     <Button
-                      variant={isMuted ? "destructive" : "secondary"}
-                      className="rounded-full w-10 h-10"
-                      onClick={toggleMute}
+                      variant="outline"
+                      size="sm"
+                      className="bg-white/90 dark:bg-black/50 backdrop-blur-sm"
+                      onClick={() => {
+                        if (previewStream) {
+                          const audioTrack = previewStream.getAudioTracks()[0];
+                          if (audioTrack) {
+                            audioTrack.enabled = !audioTrack.enabled;
+                          }
+                        }
+                      }}
                     >
-                      {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                      <Mic className="w-4 h-4" />
                     </Button>
                     <Button
-                      variant={isVideoOff ? "destructive" : "secondary"}
-                      className="rounded-full w-10 h-10"
-                      onClick={toggleVideo}
+                      variant="outline"
+                      size="sm"
+                      className="bg-white/90 dark:bg-black/50 backdrop-blur-sm"
+                      onClick={() => setAudioOnly(!audioOnly)}
                     >
-                      {isVideoOff ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+                      {audioOnly ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
                     </Button>
                   </div>
-                </Card>
-              </motion.div>
+                </div>
 
-              {/* Join Settings */}
-              <motion.div
-                className="space-y-6"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-white">
-                  Join Settings
-                </h3>
-                
-                {/* Name Input */}
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-700 dark:text-gray-300">
-                    Your Name
-                  </Label>
+                {/* Device Status */}
+                <div className="flex items-center justify-center space-x-4 text-sm">
+                  <div className={`flex items-center space-x-1 ${devicePermissions.camera ? 'text-green-600' : 'text-gray-400'}`}>
+                    <Video className="w-4 h-4" />
+                    <span>Camera {devicePermissions.camera ? 'Ready' : 'Not Available'}</span>
+                  </div>
+                  <div className={`flex items-center space-x-1 ${devicePermissions.microphone ? 'text-green-600' : 'text-gray-400'}`}>
+                    <Mic className="w-4 h-4" />
+                    <span>Microphone {devicePermissions.microphone ? 'Ready' : 'Not Available'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Settings */}
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="userName" className="text-base font-medium">Your Name</Label>
                   <Input
-                    id="name"
-                    placeholder="Enter your name"
+                    id="userName"
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
-                    className="bg-white/80 dark:bg-black/40 border-slate-200 dark:border-slate-600"
+                    placeholder="Enter your name"
+                    className="mt-2 h-12 text-lg"
                   />
                 </div>
 
-                {/* Audio Device Selection */}
-                <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-gray-300">
-                    Microphone
-                  </Label>
-                  <select
-                    value={selectedAudioDevice}
-                    onChange={(e) => setSelectedAudioDevice(e.target.value)}
-                    className="w-full p-2 rounded-lg bg-white/80 dark:bg-black/40 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-gray-300"
-                  >
-                    {audioDevices.map(device => (
-                      <option key={device.deviceId} value={device.deviceId}>
-                        {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
-                      </option>
-                    ))}
-                  </select>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base font-medium">Audio Only Mode</Label>
+                      <p className="text-sm text-slate-600 dark:text-gray-400">
+                        Join with audio only to save bandwidth
+                      </p>
+                    </div>
+                    <Switch
+                      checked={audioOnly}
+                      onCheckedChange={setAudioOnly}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-6">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={testSpeaker}
-                    className="mt-2"
+                    onClick={handleJoin}
+                    disabled={!userName.trim()}
+                    className="w-full h-14 text-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium shadow-xl shadow-cyan-500/25 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Volume2 className="w-4 h-4 mr-2" />
-                    Test Speaker
+                    <Video className="w-5 h-5 mr-2" />
+                    Join Meeting
                   </Button>
                 </div>
 
-                {/* Camera Device Selection */}
-                <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-gray-300">
-                    Camera
-                  </Label>
-                  <select
-                    value={selectedVideoDevice}
-                    onChange={(e) => setSelectedVideoDevice(e.target.value)}
-                    className="w-full p-2 rounded-lg bg-white/80 dark:bg-black/40 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-gray-300"
-                  >
-                    {videoDevices.map(device => (
-                      <option key={device.deviceId} value={device.deviceId}>
-                        {device.label || `Camera ${device.deviceId.slice(0, 8)}`}
-                      </option>
-                    ))}
-                  </select>
+                <div className="text-center text-sm text-slate-600 dark:text-gray-400">
+                  <p>By joining, you agree to our meeting guidelines</p>
                 </div>
-
-                {/* Join Options */}
-                <div className="flex flex-col space-y-3 pt-4">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Button
-                      onClick={handleJoin}
-                      disabled={!userName.trim() || isLoading}
-                      className="w-full h-12 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-medium text-lg"
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Joining...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <Video className="w-5 h-5 mr-2" />
-                          Join Meeting
-                        </>
-                      )}
-                    </Button>
-                  </motion.div>
-                  
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Button
-                      variant="outline"
-                      onClick={() => handleJoin()}
-                      disabled={!userName.trim() || isLoading}
-                      className="w-full h-12 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-gray-300 rounded-xl"
-                    >
-                      <Mic className="w-5 h-5 mr-2" />
-                      Join with Audio Only
-                    </Button>
-                  </motion.div>
-                </div>
-              </motion.div>
+              </div>
             </div>
-          </CardContent>
+          </div>
         </Card>
       </motion.div>
     </div>
