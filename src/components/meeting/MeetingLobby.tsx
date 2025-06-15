@@ -114,41 +114,33 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
         return;
       }
 
-      // If approved, add to meeting_participants with the SAME meeting ID
+      // If approved, add to meeting_participants using the new unique constraint
       if (approve) {
         const participant = lobbyParticipants.find(p => p.id === participantId);
         if (participant) {
-          // First check if participant already exists to avoid duplicates
-          const { data: existingParticipant } = await supabase
+          const { error: participantError } = await supabase
             .from('meeting_participants')
-            .select('id')
-            .eq('meeting_id', meetingId)
-            .eq('user_id', participant.user_id)
-            .maybeSingle();
+            .upsert({
+              meeting_id: meetingId,
+              user_id: participant.user_id,
+              guest_name: participant.guest_name,
+              email: participant.email,
+              status: 'approved',
+              is_host: false,
+              device_info: participant.device_info,
+              joined_at: new Date().toISOString()
+            }, {
+              onConflict: 'meeting_id,user_id'
+            });
 
-          if (!existingParticipant) {
-            const { error: participantError } = await supabase
-              .from('meeting_participants')
-              .insert({
-                meeting_id: meetingId, // Use the SAME meeting ID consistently
-                user_id: participant.user_id,
-                guest_name: participant.guest_name,
-                email: participant.email,
-                status: 'approved',
-                is_host: false,
-                device_info: participant.device_info,
-                joined_at: new Date().toISOString()
-              });
-
-            if (participantError) {
-              console.error('Error adding participant:', participantError);
-              toast({
-                title: "Error",
-                description: "Failed to add participant to meeting",
-                variant: "destructive"
-              });
-              return;
-            }
+          if (participantError) {
+            console.error('Error adding participant:', participantError);
+            toast({
+              title: "Error",
+              description: "Failed to add participant to meeting",
+              variant: "destructive"
+            });
+            return;
           }
         }
       }

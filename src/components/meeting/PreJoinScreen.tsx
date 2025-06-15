@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Video, VideoOff, Mic, MicOff, Settings, Monitor, User, Shield } from 'lucide-react';
@@ -118,6 +119,7 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
     try {
       console.log('Adding participant with upsert for meeting:', meeting.id, 'user:', user?.id);
       
+      // Use the new unique constraint that was created in the migration
       const { error } = await supabase
         .from('meeting_participants')
         .upsert({
@@ -132,8 +134,7 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
             audioOnly
           }
         }, {
-          onConflict: user?.id ? 'user_id,meeting_id' : 'guest_name,meeting_id',
-          ignoreDuplicates: false
+          onConflict: 'meeting_id,user_id'
         });
 
       if (error) {
