@@ -3,9 +3,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import premium light mode styles */
-@import url('./styles/light-mode.css');
-
 @layer base {
   :root {
     /* Core shadcn variables - Enhanced for Premium Experience */
@@ -68,6 +65,29 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Premium Light Mode CSS Variables */
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F8FAFC;
+    --bg-tertiary: #F1F5F9;
+    --bg-elevated: #FFFFFF;
+    --accent-primary: #3B82F6;
+    --accent-secondary: #10B981;
+    --accent-tertiary: #F59E0B;
+    --accent-danger: #EF4444;
+    --accent-purple: #8B5CF6;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-tertiary: #64748B;
+    --text-muted: #94A3B8;
+    --border-primary: #E2E8F0;
+    --border-secondary: #CBD5E1;
+    --border-focus: #3B82F6;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
   }
 
   * {
@@ -116,9 +136,144 @@
   }
 }
 
+@layer components {
+  /* Premium Card System */
+  .card-premium {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-premium:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--accent-primary);
+  }
+
+  /* Premium Button System */
+  .btn-primary-light {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 24px;
+    font-weight: 600;
+    box-shadow: var(--shadow-md);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary-light:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Input System */
+  .input-premium {
+    background: var(--bg-elevated);
+    border: 2px solid var(--border-primary);
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: var(--text-primary);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 44px;
+  }
+
+  .input-premium:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-glow);
+    transform: scale(1.01);
+  }
+
+  /* Glassmorphism Effects */
+  .glassmorphism {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Meeting Card System */
+  .meeting-card-premium {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-primary);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .meeting-card-premium:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--accent-primary);
+  }
+
+  /* Navigation System */
+  .nav-premium {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-primary);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(10px);
+  }
+
+  /* Video Controls */
+  .video-controls-premium {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--border-primary);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* Sidebar System */
+  .sidebar-premium {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-primary);
+    width: 280px;
+    height: 100vh;
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Status Indicators */
+  .status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .status-indicator.online {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-secondary);
+  }
+
+  .status-indicator.busy {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--accent-danger);
+  }
+
+  .status-indicator.away {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--accent-tertiary);
+  }
+}
+
 @layer utilities {
-  /* PREMIUM LIGHT MODE UTILITIES */
-  
   /* Typography System */
   .text-gradient-premium {
     @apply bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent;
@@ -132,7 +287,7 @@
     animation: textGlow 3s ease-in-out infinite;
   }
 
-  /* Card System */
+  /* Auto Theme System */
   .card-premium-auto {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -145,7 +300,6 @@
     @apply bg-slate-900 border-slate-800 shadow-2xl;
   }
 
-  /* Button System */
   .btn-premium-auto {
     @apply transition-all duration-300 transform;
   }
@@ -158,10 +312,9 @@
     @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white border-none shadow-lg hover:shadow-xl;
   }
 
-  /* Input System */
   .input-premium-auto {
     @apply transition-all duration-300;
-    min-height: 44px; /* Touch-friendly */
+    min-height: 44px;
   }
 
   [data-theme="light"] .input-premium-auto {
@@ -172,7 +325,6 @@
     @apply bg-slate-800 border-slate-700 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20;
   }
 
-  /* Navigation System */
   .nav-premium-auto {
     @apply transition-all duration-300;
   }
@@ -185,7 +337,6 @@
     @apply bg-slate-900/95 border-slate-800 backdrop-blur-xl;
   }
 
-  /* Meeting Card System */
   .meeting-card-auto {
     @apply transition-all duration-300 transform;
   }
@@ -198,7 +349,6 @@
     @apply bg-slate-900 border-slate-800 hover:border-blue-500 shadow-xl hover:shadow-2xl;
   }
 
-  /* Video Controls */
   .video-controls-auto {
     @apply transition-all duration-300;
   }
@@ -211,7 +361,6 @@
     @apply bg-slate-900/95 border-slate-700 backdrop-blur-xl shadow-2xl;
   }
 
-  /* Sidebar System */
   .sidebar-auto {
     @apply transition-all duration-300;
   }
@@ -222,6 +371,30 @@
 
   [data-theme="dark"] .sidebar-auto {
     @apply bg-slate-950 border-slate-800;
+  }
+
+  .glass-auto {
+    @apply transition-all duration-300;
+  }
+
+  [data-theme="light"] .glass-auto {
+    @apply glassmorphism;
+  }
+
+  [data-theme="dark"] .glass-auto {
+    @apply bg-slate-900/50 backdrop-blur-xl border border-slate-700/50;
+  }
+
+  .status-auto {
+    @apply transition-all duration-300;
+  }
+
+  [data-theme="light"] .status-auto {
+    @apply status-indicator;
+  }
+
+  [data-theme="dark"] .status-auto {
+    @apply px-3 py-1 rounded-full text-sm font-medium;
   }
 
   /* Interactive Effects */
@@ -248,32 +421,6 @@
 
   [data-theme="dark"] .hover-glow:hover {
     @apply shadow-lg shadow-blue-500/25;
-  }
-
-  /* Status Indicators */
-  .status-auto {
-    @apply transition-all duration-300;
-  }
-
-  [data-theme="light"] .status-auto {
-    @apply status-indicator;
-  }
-
-  [data-theme="dark"] .status-auto {
-    @apply px-3 py-1 rounded-full text-sm font-medium;
-  }
-
-  /* Glassmorphism Auto */
-  .glass-auto {
-    @apply transition-all duration-300;
-  }
-
-  [data-theme="light"] .glass-auto {
-    @apply glassmorphism;
-  }
-
-  [data-theme="dark"] .glass-auto {
-    @apply bg-slate-900/50 backdrop-blur-xl border border-slate-700/50;
   }
 
   /* Enhanced Animations */
@@ -369,7 +516,6 @@
       transform: translateY(-1px);
     }
     
-    /* Larger touch targets */
     .btn-premium-auto,
     .input-premium-auto {
       min-height: 48px;
