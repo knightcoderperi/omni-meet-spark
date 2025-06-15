@@ -121,7 +121,7 @@ const Dashboard = () => {
         description: 'Quick meeting started from dashboard',
         meeting_code: meetingCode,
         is_active: true,
-        status: 'active',
+        status: 'active' as const,
         allow_anonymous: false,
         require_approval: true
       };
