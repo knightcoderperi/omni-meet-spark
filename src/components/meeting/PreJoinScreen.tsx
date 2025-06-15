@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Video, VideoOff, Mic, MicOff, Settings, Monitor, User, Shield } from 'lucide-react';
@@ -77,12 +76,12 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
   };
 
   const addToLobbyQueue = async () => {
-    if (!meeting?.id) return;
+    if (!meeting?.id) return false;
 
     try {
       const { error } = await supabase
         .from('lobby_queue')
-        .insert({
+        .upsert({
           meeting_id: meeting.id,
           user_id: user?.id || null,
           guest_name: user ? null : userName,
@@ -92,6 +91,8 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
             userAgent: navigator.userAgent,
             audioOnly
           }
+        }, {
+          onConflict: user?.id ? 'user_id,meeting_id' : 'guest_name,meeting_id'
         });
 
       if (error) {
@@ -112,12 +113,14 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
   };
 
   const addAsParticipant = async () => {
-    if (!meeting?.id) return;
+    if (!meeting?.id) return false;
 
     try {
+      console.log('Adding participant with upsert for meeting:', meeting.id, 'user:', user?.id);
+      
       const { error } = await supabase
         .from('meeting_participants')
-        .insert({
+        .upsert({
           meeting_id: meeting.id,
           user_id: user?.id || null,
           guest_name: user ? null : userName,
@@ -128,6 +131,9 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
             userAgent: navigator.userAgent,
             audioOnly
           }
+        }, {
+          onConflict: user?.id ? 'user_id,meeting_id' : 'guest_name,meeting_id',
+          ignoreDuplicates: false
         });
 
       if (error) {
@@ -140,6 +146,7 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
         return false;
       }
 
+      console.log('Successfully added/updated participant');
       return true;
     } catch (error) {
       console.error('Error in addAsParticipant:', error);
@@ -151,6 +158,7 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
     if (isJoining || !meeting) return;
     
     setIsJoining(true);
+    console.log('Starting join process for meeting:', meeting.id, 'user:', user?.id);
     
     try {
       // Stop preview stream
@@ -160,6 +168,8 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
 
       const isHost = user?.id === meeting.host_id;
       const requiresApproval = meeting.require_approval && !isHost;
+
+      console.log('Join settings:', { isHost, requiresApproval });
 
       // Handle joining logic based on approval requirements
       if (requiresApproval) {
@@ -187,14 +197,14 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
       }
 
       // Proceed to join with consistent room ID (using meeting.id)
-      console.log('Joining meeting with ID:', meeting.id);
+      console.log('Successfully processed join request, proceeding to meeting room');
       onJoin(userName, audioOnly);
       
     } catch (error) {
       console.error('Error joining meeting:', error);
       toast({
         title: "Error",
-        description: "Failed to join meeting",
+        description: "Failed to join meeting. Please try again.",
         variant: "destructive"
       });
     } finally {
