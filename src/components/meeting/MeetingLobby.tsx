@@ -41,7 +41,9 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
     if (!isHost || !meetingId) return;
 
     fetchLobbyParticipants();
-    setupRealtimeSubscription();
+    const cleanup = setupRealtimeSubscription();
+    
+    return cleanup;
   }, [meetingId, isHost]);
 
   const setupRealtimeSubscription = () => {
@@ -92,7 +94,8 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
     try {
       const status = approve ? 'approved' : 'denied';
       
-      const { error } = await supabase
+      // Update lobby queue status
+      const { error: lobbyError } = await supabase
         .from('lobby_queue')
         .update({ 
           approval_status: status,
@@ -101,8 +104,8 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
         })
         .eq('id', participantId);
 
-      if (error) {
-        console.error('Error updating approval status:', error);
+      if (lobbyError) {
+        console.error('Error updating approval status:', lobbyError);
         toast({
           title: "Error",
           description: "Failed to update participant status",
@@ -111,24 +114,41 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
         return;
       }
 
-      // If approved, also add to meeting_participants
+      // If approved, add to meeting_participants with the SAME meeting ID
       if (approve) {
         const participant = lobbyParticipants.find(p => p.id === participantId);
         if (participant) {
-          const { error: participantError } = await supabase
+          // First check if participant already exists to avoid duplicates
+          const { data: existingParticipant } = await supabase
             .from('meeting_participants')
-            .insert({
-              meeting_id: meetingId,
-              user_id: participant.user_id,
-              guest_name: participant.guest_name,
-              email: participant.email,
-              status: 'approved',
-              is_host: false,
-              device_info: participant.device_info
-            });
+            .select('id')
+            .eq('meeting_id', meetingId)
+            .eq('user_id', participant.user_id)
+            .maybeSingle();
 
-          if (participantError) {
-            console.error('Error adding participant:', participantError);
+          if (!existingParticipant) {
+            const { error: participantError } = await supabase
+              .from('meeting_participants')
+              .insert({
+                meeting_id: meetingId, // Use the SAME meeting ID consistently
+                user_id: participant.user_id,
+                guest_name: participant.guest_name,
+                email: participant.email,
+                status: 'approved',
+                is_host: false,
+                device_info: participant.device_info,
+                joined_at: new Date().toISOString()
+              });
+
+            if (participantError) {
+              console.error('Error adding participant:', participantError);
+              toast({
+                title: "Error",
+                description: "Failed to add participant to meeting",
+                variant: "destructive"
+              });
+              return;
+            }
           }
         }
       }
@@ -140,8 +160,12 @@ const MeetingLobby: React.FC<MeetingLobbyProps> = ({
           : "The participant has been rejected",
       });
 
+      // Notify parent component to refresh participant list
       onParticipantUpdate();
+      
+      // Refresh lobby list
       fetchLobbyParticipants();
+      
     } catch (error) {
       console.error('Error handling approval:', error);
       toast({

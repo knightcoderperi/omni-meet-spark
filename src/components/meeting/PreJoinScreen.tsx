@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface PreJoinScreenProps {
   meeting: any;
@@ -23,6 +25,7 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
   theme
 }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [userName, setUserName] = useState(user?.user_metadata?.full_name || user?.email || '');
   const [audioOnly, setAudioOnly] = useState(false);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
@@ -30,6 +33,7 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
     camera: false,
     microphone: false
   });
+  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
     checkDevicePermissions();
@@ -72,11 +76,130 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
     }
   };
 
-  const handleJoin = () => {
-    if (previewStream) {
-      previewStream.getTracks().forEach(track => track.stop());
+  const addToLobbyQueue = async () => {
+    if (!meeting?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('lobby_queue')
+        .insert({
+          meeting_id: meeting.id,
+          user_id: user?.id || null,
+          guest_name: user ? null : userName,
+          email: user?.email || null,
+          approval_status: 'pending',
+          device_info: {
+            userAgent: navigator.userAgent,
+            audioOnly
+          }
+        });
+
+      if (error) {
+        console.error('Error adding to lobby queue:', error);
+        toast({
+          title: "Error",
+          description: "Failed to join meeting lobby",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in addToLobbyQueue:', error);
+      return false;
     }
-    onJoin(userName, audioOnly);
+  };
+
+  const addAsParticipant = async () => {
+    if (!meeting?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('meeting_participants')
+        .insert({
+          meeting_id: meeting.id,
+          user_id: user?.id || null,
+          guest_name: user ? null : userName,
+          email: user?.email || null,
+          status: 'approved',
+          is_host: user?.id === meeting.host_id,
+          device_info: {
+            userAgent: navigator.userAgent,
+            audioOnly
+          }
+        });
+
+      if (error) {
+        console.error('Error adding participant:', error);
+        toast({
+          title: "Error",
+          description: "Failed to join meeting",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in addAsParticipant:', error);
+      return false;
+    }
+  };
+
+  const handleJoin = async () => {
+    if (isJoining || !meeting) return;
+    
+    setIsJoining(true);
+    
+    try {
+      // Stop preview stream
+      if (previewStream) {
+        previewStream.getTracks().forEach(track => track.stop());
+      }
+
+      const isHost = user?.id === meeting.host_id;
+      const requiresApproval = meeting.require_approval && !isHost;
+
+      // Handle joining logic based on approval requirements
+      if (requiresApproval) {
+        // Add to lobby queue for approval
+        const success = await addToLobbyQueue();
+        if (!success) {
+          setIsJoining(false);
+          return;
+        }
+        
+        toast({
+          title: "Waiting for approval",
+          description: "The host will review your request to join the meeting",
+        });
+        
+        // For now, we'll still proceed to onJoin to show the waiting screen
+        // The actual meeting room access will be controlled by the lobby system
+      } else {
+        // Direct join - add as participant immediately
+        const success = await addAsParticipant();
+        if (!success) {
+          setIsJoining(false);
+          return;
+        }
+      }
+
+      // Proceed to join with consistent room ID (using meeting.id)
+      console.log('Joining meeting with ID:', meeting.id);
+      onJoin(userName, audioOnly);
+      
+    } catch (error) {
+      console.error('Error joining meeting:', error);
+      toast({
+        title: "Error",
+        description: "Failed to join meeting",
+        variant: "destructive"
+      });
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   return (
@@ -209,11 +332,11 @@ const PreJoinScreen: React.FC<PreJoinScreenProps> = ({
                 <div className="pt-6">
                   <Button
                     onClick={handleJoin}
-                    disabled={!userName.trim()}
+                    disabled={!userName.trim() || isJoining}
                     className="w-full h-14 text-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium shadow-xl shadow-cyan-500/25 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Video className="w-5 h-5 mr-2" />
-                    Join Meeting
+                    {isJoining ? 'Joining...' : 'Join Meeting'}
                   </Button>
                 </div>
 

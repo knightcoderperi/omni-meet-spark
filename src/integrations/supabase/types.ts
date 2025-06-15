@@ -1061,6 +1061,19 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_meeting_by_code: {
+        Args: { meeting_code_param: string }
+        Returns: {
+          id: string
+          title: string
+          meeting_code: string
+          host_id: string
+          is_active: boolean
+          require_approval: boolean
+          meeting_password: string
+          created_at: string
+        }[]
+      }
       handle_failed_login: {
         Args: { user_email: string }
         Returns: Json
@@ -1068,6 +1081,10 @@ export type Database = {
       is_host: {
         Args: { user_id: string; meeting_id: string }
         Returns: boolean
+      }
+      normalize_meeting_code: {
+        Args: { code: string }
+        Returns: string
       }
       reset_failed_attempts: {
         Args: { user_email: string }
