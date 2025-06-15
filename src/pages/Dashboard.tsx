@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Video, Users, Calendar, Settings, LogOut, Search, Clock, Copy } from 'lucide-react';
@@ -120,6 +121,7 @@ const Dashboard = () => {
         description: 'Quick meeting started from dashboard',
         meeting_code: meetingCode,
         is_active: true,
+        status: 'active',
         allow_anonymous: false,
         require_approval: true
       };
@@ -167,6 +169,43 @@ const Dashboard = () => {
       title: "Copied!",
       description: "Meeting code copied to clipboard"
     });
+  };
+
+  const startMeeting = async (meeting: Meeting) => {
+    try {
+      console.log('Starting meeting:', meeting.id);
+      
+      // Activate the meeting if it's not already active
+      if (!meeting.is_active) {
+        const { error: updateError } = await supabase
+          .from('meetings')
+          .update({ 
+            is_active: true,
+            status: 'active'
+          })
+          .eq('id', meeting.id);
+
+        if (updateError) {
+          console.error('Error activating meeting:', updateError);
+          toast({
+            title: "Error",
+            description: "Failed to start meeting",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
+      // Navigate to the meeting
+      navigate(`/meeting/${meeting.meeting_code}`);
+    } catch (error) {
+      console.error('Error starting meeting:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start meeting",
+        variant: "destructive"
+      });
+    }
   };
 
   const joinMeeting = (code: string) => {
@@ -391,10 +430,10 @@ const Dashboard = () => {
                           </Button>
                         </div>
                         <Button
-                          onClick={() => joinMeeting(meeting.meeting_code)}
+                          onClick={() => startMeeting(meeting)}
                           className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/25 px-6 py-2 rounded-xl font-medium"
                         >
-                          {meeting.host_id === user?.id ? 'Start' : 'Join'}
+                          Start
                         </Button>
                       </div>
                     </motion.div>
