@@ -3,9 +3,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import premium light mode styles */
+@import url('./styles/light-mode.css');
+
 @layer base {
   :root {
-    /* Core shadcn variables - Dark Mode Defaults (Netflix/Professional) */
+    /* Core shadcn variables - Enhanced for Premium Experience */
     --background: 210 40% 2%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
@@ -34,31 +37,18 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
     --radius: 1rem;
-
-    /* DARK MODE PERSONALITY - Netflix/Professional */
-    --dark-bg-primary: #0a0a0a;
-    --dark-bg-secondary: #111111;
-    --dark-bg-tertiary: #1a1a1a;
-    --dark-surface: #1e1e1e;
-    --dark-accent: #3b82f6;
-    --dark-accent-secondary: #6366f1;
-    --dark-text-primary: #ffffff;
-    --dark-text-secondary: #e5e7eb;
-    --dark-border: #333333;
-    --dark-shadow: rgba(0, 0, 0, 0.5);
-    --dark-glow: rgba(59, 130, 246, 0.3);
   }
 
-  /* LIGHT MODE PERSONALITY - Instagram/TikTok Energy */
-  .light {
+  /* PREMIUM LIGHT MODE VARIABLES */
+  [data-theme="light"] {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 339 100% 60%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96%;
@@ -69,7 +59,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 339 100% 60%;
+    --ring: 221.2 83.2% 53.3%;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -78,20 +68,6 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-
-    /* LIGHT MODE VIBRANT PERSONALITY */
-    --light-bg-gradient: linear-gradient(45deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
-    --light-bg-secondary: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
-    --light-accent-primary: #ff6b6b;
-    --light-accent-secondary: #feca57;
-    --light-accent-tertiary: #48dbfb;
-    --light-accent-quaternary: #ff9ff3;
-    --light-text-primary: #2d3436;
-    --light-text-secondary: #636e72;
-    --light-shadow-vibrant: rgba(255, 107, 107, 0.3);
-    --light-glow: rgba(255, 107, 107, 0.6);
-    --light-glassmorphism: rgba(255, 255, 255, 0.95);
-    --light-glassmorphism-border: rgba(255, 255, 255, 0.2);
   }
 
   * {
@@ -113,23 +89,23 @@
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
   }
 
-  /* DARK MODE BODY - Netflix Professional */
+  /* DARK MODE BODY - Netflix Professional (Default) */
   body {
     @apply bg-gradient-to-br from-black via-slate-950 to-black text-white;
     background-attachment: fixed;
   }
 
-  /* LIGHT MODE BODY - Instagram Energy */
-  body.light {
-    background: var(--light-bg-gradient);
+  /* PREMIUM LIGHT MODE BODY */
+  [data-theme="light"] body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
     background-size: 400% 400%;
-    animation: lightModeGradientShift 8s ease infinite;
-    color: var(--light-text-primary);
+    animation: premiumGradientShift 8s ease infinite;
+    color: var(--text-primary);
     background-attachment: fixed;
   }
 
-  /* Smooth theme transition with sequenced animations */
-  body.theme-transitioning * {
+  /* Enhanced theme transition system */
+  .theme-transitioning * {
     transition: 
       background 0.5s cubic-bezier(0.23, 1, 0.32, 1),
       background-color 0.5s cubic-bezier(0.23, 1, 0.32, 1),
@@ -141,325 +117,344 @@
 }
 
 @layer utilities {
-  /* DARK MODE TYPOGRAPHY - Professional */
-  .text-gradient-dark {
-    @apply bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent;
-  }
-
-  .text-gradient-dark-accent {
-    @apply bg-gradient-to-r from-blue-400 via-purple-500 to-indigo-600 bg-clip-text text-transparent;
-  }
-
-  /* LIGHT MODE TYPOGRAPHY - Vibrant Energy */
-  .text-gradient-light {
-    @apply bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent;
+  /* PREMIUM LIGHT MODE UTILITIES */
+  
+  /* Typography System */
+  .text-gradient-premium {
+    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent;
     font-weight: 700;
-    text-shadow: 0 2px 4px rgba(255, 107, 107, 0.2);
+    text-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
   }
 
-  .text-gradient-light-accent {
+  .text-gradient-vibrant {
     @apply bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 bg-clip-text text-transparent;
     font-weight: 600;
-    animation: lightTextGlow 3s ease-in-out infinite;
+    animation: textGlow 3s ease-in-out infinite;
   }
 
-  /* DARK MODE CARDS - Netflix Style */
-  .card-dark {
-    background: var(--dark-surface);
-    border: 1px solid var(--dark-border);
-    box-shadow: 0 4px 20px var(--dark-shadow);
-    backdrop-filter: blur(10px);
-    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  /* Card System */
+  .card-premium-auto {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .card-dark:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 30px var(--dark-glow);
+  [data-theme="light"] .card-premium-auto {
+    @apply card-premium;
   }
 
-  /* LIGHT MODE CARDS - Glassmorphism Energy */
-  .card-light {
-    background: var(--light-glassmorphism);
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid var(--light-glassmorphism-border);
-    box-shadow: 
-      0 8px 32px rgba(255, 107, 107, 0.15),
-      0 4px 16px rgba(118, 75, 162, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-    position: relative;
-    overflow: hidden;
+  [data-theme="dark"] .card-premium-auto {
+    @apply bg-slate-900 border-slate-800 shadow-2xl;
   }
 
-  .card-light::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    transition: left 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  /* Button System */
+  .btn-premium-auto {
+    @apply transition-all duration-300 transform;
   }
 
-  .card-light:hover {
-    transform: translateY(-15px) scale(1.05);
-    box-shadow: 
-      0 20px 40px rgba(255, 107, 107, 0.25),
-      0 10px 20px rgba(118, 75, 162, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  [data-theme="light"] .btn-premium-auto {
+    @apply btn-primary-light;
   }
 
-  .card-light:hover::before {
-    left: 100%;
+  [data-theme="dark"] .btn-premium-auto {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white border-none shadow-lg hover:shadow-xl;
   }
 
-  /* DARK MODE BUTTONS - Professional */
-  .btn-dark {
-    background: linear-gradient(135deg, var(--dark-accent), var(--dark-accent-secondary));
-    border: none;
-    color: white;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  /* Input System */
+  .input-premium-auto {
+    @apply transition-all duration-300;
+    min-height: 44px; /* Touch-friendly */
   }
 
-  .btn-dark:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+  [data-theme="light"] .input-premium-auto {
+    @apply input-premium;
   }
 
-  /* LIGHT MODE BUTTONS - Vibrant Energy */
-  .btn-light {
-    background: linear-gradient(135deg, var(--light-accent-primary), var(--light-accent-secondary));
-    border: none;
-    color: white;
-    box-shadow: 0 8px 25px var(--light-shadow-vibrant);
-    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-    position: relative;
-    overflow: hidden;
+  [data-theme="dark"] .input-premium-auto {
+    @apply bg-slate-800 border-slate-700 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20;
   }
 
-  .btn-light::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    transition: width 0.3s ease, height 0.3s ease;
+  /* Navigation System */
+  .nav-premium-auto {
+    @apply transition-all duration-300;
   }
 
-  .btn-light:hover {
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 15px 35px var(--light-glow);
-    filter: brightness(1.1);
+  [data-theme="light"] .nav-premium-auto {
+    @apply nav-premium;
   }
 
-  .btn-light:active::after {
-    width: 300px;
-    height: 300px;
-    transition: width 0.1s ease, height 0.1s ease;
+  [data-theme="dark"] .nav-premium-auto {
+    @apply bg-slate-900/95 border-slate-800 backdrop-blur-xl;
   }
 
-  /* LIGHT MODE FLOATING PARTICLES */
-  .floating-particles {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0;
-    transition: opacity 0.5s ease;
+  /* Meeting Card System */
+  .meeting-card-auto {
+    @apply transition-all duration-300 transform;
   }
 
-  .light .floating-particles {
-    opacity: 1;
+  [data-theme="light"] .meeting-card-auto {
+    @apply meeting-card-premium;
   }
 
-  .particle {
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background: var(--light-accent-primary);
-    border-radius: 50%;
-    animation: floatParticle 8s ease-in-out infinite;
-    box-shadow: 0 0 10px var(--light-accent-primary);
+  [data-theme="dark"] .meeting-card-auto {
+    @apply bg-slate-900 border-slate-800 hover:border-blue-500 shadow-xl hover:shadow-2xl;
   }
 
-  .particle:nth-child(2n) {
-    background: var(--light-accent-secondary);
-    box-shadow: 0 0 10px var(--light-accent-secondary);
-    animation-delay: -2s;
+  /* Video Controls */
+  .video-controls-auto {
+    @apply transition-all duration-300;
   }
 
-  .particle:nth-child(3n) {
-    background: var(--light-accent-tertiary);
-    box-shadow: 0 0 10px var(--light-accent-tertiary);
-    animation-delay: -4s;
+  [data-theme="light"] .video-controls-auto {
+    @apply video-controls-premium;
   }
 
-  .particle:nth-child(4n) {
-    background: var(--light-accent-quaternary);
-    box-shadow: 0 0 10px var(--light-accent-quaternary);
-    animation-delay: -6s;
+  [data-theme="dark"] .video-controls-auto {
+    @apply bg-slate-900/95 border-slate-700 backdrop-blur-xl shadow-2xl;
   }
 
-  /* ENHANCED ANIMATIONS */
-  @keyframes lightModeGradientShift {
+  /* Sidebar System */
+  .sidebar-auto {
+    @apply transition-all duration-300;
+  }
+
+  [data-theme="light"] .sidebar-auto {
+    @apply sidebar-premium;
+  }
+
+  [data-theme="dark"] .sidebar-auto {
+    @apply bg-slate-950 border-slate-800;
+  }
+
+  /* Interactive Effects */
+  .hover-lift {
+    @apply transition-all duration-300 transform;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-1;
+  }
+
+  [data-theme="light"] .hover-lift:hover {
+    @apply -translate-y-2 scale-105;
+    filter: drop-shadow(0 10px 20px rgba(59, 130, 246, 0.2));
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+
+  [data-theme="light"] .hover-glow:hover {
+    animation: premiumGlow 2s ease-in-out infinite;
+  }
+
+  [data-theme="dark"] .hover-glow:hover {
+    @apply shadow-lg shadow-blue-500/25;
+  }
+
+  /* Status Indicators */
+  .status-auto {
+    @apply transition-all duration-300;
+  }
+
+  [data-theme="light"] .status-auto {
+    @apply status-indicator;
+  }
+
+  [data-theme="dark"] .status-auto {
+    @apply px-3 py-1 rounded-full text-sm font-medium;
+  }
+
+  /* Glassmorphism Auto */
+  .glass-auto {
+    @apply transition-all duration-300;
+  }
+
+  [data-theme="light"] .glass-auto {
+    @apply glassmorphism;
+  }
+
+  [data-theme="dark"] .glass-auto {
+    @apply bg-slate-900/50 backdrop-blur-xl border border-slate-700/50;
+  }
+
+  /* Enhanced Animations */
+  @keyframes premiumGradientShift {
     0%, 100% { background-position: 0% 50%; }
     25% { background-position: 100% 50%; }
     50% { background-position: 100% 100%; }
     75% { background-position: 0% 100%; }
   }
 
-  @keyframes floatParticle {
-    0%, 100% { 
-      transform: translateY(0px) rotate(0deg) scale(1);
-      opacity: 0.7;
-    }
-    25% { 
-      transform: translateY(-20px) rotate(90deg) scale(1.2);
-      opacity: 1;
-    }
-    50% { 
-      transform: translateY(-40px) rotate(180deg) scale(0.8);
-      opacity: 0.8;
-    }
-    75% { 
-      transform: translateY(-20px) rotate(270deg) scale(1.1);
-      opacity: 0.9;
-    }
-  }
-
-  @keyframes lightTextGlow {
+  @keyframes textGlow {
     0%, 100% { text-shadow: 0 0 5px rgba(255, 107, 107, 0.3); }
     50% { text-shadow: 0 0 20px rgba(255, 107, 107, 0.6), 0 0 30px rgba(254, 202, 87, 0.4); }
   }
 
-  @keyframes pulseGlow {
-    0%, 100% { box-shadow: 0 0 10px rgba(255, 107, 107, 0.3); }
-    50% { box-shadow: 0 0 30px rgba(255, 107, 107, 0.8), 0 0 40px rgba(254, 202, 87, 0.4); }
+  @keyframes premiumGlow {
+    0%, 100% { 
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+      transform: scale(1);
+    }
+    50% { 
+      box-shadow: 0 0 40px rgba(59, 130, 246, 0.6), 0 0 60px rgba(16, 185, 129, 0.3);
+      transform: scale(1.02);
+    }
   }
 
-  /* THEME-AWARE COMPONENT CLASSES */
-  .theme-card {
-    @apply card-dark;
-    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  @keyframes fadeInScale {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 
-  .light .theme-card {
-    @apply card-light;
+  @keyframes slideInFromRight {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
 
-  .theme-button {
-    @apply btn-dark;
-    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  @keyframes bounceIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
-  .light .theme-button {
-    @apply btn-light;
+  /* Animation Classes */
+  .animate-fade-in-scale {
+    animation: fadeInScale 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .theme-text-primary {
-    @apply text-gradient-dark;
-    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  .animate-slide-in-right {
+    animation: slideInFromRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .light .theme-text-primary {
-    @apply text-gradient-light;
+  .animate-bounce-in {
+    animation: bounceIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .theme-text-accent {
-    @apply text-gradient-dark-accent;
-    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  .stagger-animation > * {
+    animation-delay: calc(0.1s * var(--item-index, 0));
   }
 
-  .light .theme-text-accent {
-    @apply text-gradient-light-accent;
-  }
-
-  /* ENHANCED HOVER EFFECTS FOR LIGHT MODE */
-  .light .hover-lift:hover {
-    transform: translateY(-10px) rotate(2deg) scale(1.05);
-    filter: drop-shadow(0 15px 25px rgba(255, 107, 107, 0.3));
-  }
-
-  .light .hover-glow:hover {
-    animation: pulseGlow 2s ease-in-out infinite;
-  }
-
-  /* RESPONSIVE ANIMATIONS */
+  /* Mobile-First Responsive Enhancements */
   @media (max-width: 768px) {
-    .card-light:hover {
-      transform: translateY(-8px) scale(1.02);
+    .card-premium-auto:hover,
+    .meeting-card-auto:hover {
+      transform: translateY(-2px) scale(1.01);
     }
     
-    .btn-light:hover {
-      transform: translateY(-2px) scale(1.02);
+    .btn-premium-auto:hover {
+      transform: translateY(-1px) scale(1.01);
+    }
+    
+    .hover-lift:hover {
+      transform: translateY(-1px);
+    }
+    
+    /* Larger touch targets */
+    .btn-premium-auto,
+    .input-premium-auto {
+      min-height: 48px;
+      min-width: 48px;
     }
   }
 
-  /* ACCESSIBILITY */
+  /* Touch device optimizations */
+  @media (hover: none) and (pointer: coarse) {
+    .hover-lift:hover,
+    .card-premium-auto:hover,
+    .meeting-card-auto:hover {
+      transform: none;
+    }
+    
+    .btn-premium-auto:active {
+      transform: scale(0.95);
+    }
+    
+    .card-premium-auto:active {
+      transform: scale(0.98);
+    }
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    [data-theme="light"] {
+      --border-primary: #000000;
+      --text-primary: #000000;
+      --text-secondary: #333333;
+    }
+  }
+
+  /* Reduced motion support */
   @media (prefers-reduced-motion: reduce) {
-    .floating-particles,
-    .particle {
+    * {
+      transition: none !important;
       animation: none !important;
     }
     
-    .light {
+    [data-theme="light"] body {
       animation: none !important;
     }
-    
-    .card-light:hover,
-    .btn-light:hover {
-      transform: none !important;
-    }
   }
 
-  /* PERFORMANCE OPTIMIZATIONS */
-  .card-light,
-  .btn-light,
-  .particle {
-    will-change: transform, opacity;
-    transform: translateZ(0);
+  /* Focus management for accessibility */
+  .btn-premium-auto:focus-visible,
+  .input-premium-auto:focus-visible,
+  .nav-item-premium:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
   }
-}
 
-/* SELECTION STYLES */
-::selection {
-  background: var(--dark-glow);
-  color: white;
-}
+  /* Selection styles */
+  ::selection {
+    background: rgba(59, 130, 246, 0.3);
+    color: inherit;
+  }
 
-.light ::selection {
-  background: var(--light-glow);
-  color: white;
-}
+  [data-theme="light"] ::selection {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--text-primary);
+  }
 
-/* SCROLLBAR STYLES */
-::-webkit-scrollbar {
-  width: 8px;
-}
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-::-webkit-scrollbar-track {
-  background: var(--dark-bg-secondary);
-}
+  ::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+  }
 
-.light ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-}
+  ::-webkit-scrollbar-thumb {
+    background: var(--accent-primary);
+    border-radius: 4px;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: var(--dark-accent);
-  border-radius: 4px;
-}
+  [data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 4px;
+  }
 
-.light ::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, var(--light-accent-primary), var(--light-accent-secondary));
-  border-radius: 4px;
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-secondary);
+  }
 }
